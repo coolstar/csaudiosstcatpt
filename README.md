@@ -4,4 +4,4 @@ Open Source alternative for the Intel Haswell / Broadwell SSDT driver (untested 
 
 Tested on Google Pixel 2 LS (Core i7-5500U)
 
-Based off SimpleAudioSample and TabletAudioSample from Microsoft's WDK 10 samples
+Based off csaudioacp3x
