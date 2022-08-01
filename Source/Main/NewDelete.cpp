@@ -59,7 +59,7 @@ PVOID operator new
     POOL_FLAGS  poolFlags
 )
 {
-    PVOID result = ExAllocatePool2(poolFlags, iSize, CSAUDIOACP3X_POOLTAG);
+    PVOID result = ExAllocatePool2(poolFlags, iSize, CSAUDIOCATPTSST_POOLTAG);
 
     return result;
 }
@@ -98,7 +98,7 @@ void __cdecl operator delete
 
     if (pVoid)
     {
-        ExFreePoolWithTag(pVoid, CSAUDIOACP3X_POOLTAG);
+        ExFreePoolWithTag(pVoid, CSAUDIOCATPTSST_POOLTAG);
     }
 }
 
@@ -118,7 +118,7 @@ void __cdecl operator delete[]
 
     if (pVoid)
     {
-        ExFreePoolWithTag(pVoid, CSAUDIOACP3X_POOLTAG);
+        ExFreePoolWithTag(pVoid, CSAUDIOCATPTSST_POOLTAG);
     }
 }
 
@@ -135,7 +135,7 @@ void __cdecl operator delete[]
 {
     if (pVoid)
     {
-        ExFreePoolWithTag(pVoid, CSAUDIOACP3X_POOLTAG);
+        ExFreePoolWithTag(pVoid, CSAUDIOCATPTSST_POOLTAG);
     }
 }
 #endif//_NEW_DELETE_OPERATORS_

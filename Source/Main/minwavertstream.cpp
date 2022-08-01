@@ -4,7 +4,6 @@
 #include "endpoints.h"
 #include "minwavert.h"
 #include "minwavertstream.h"
-#include "acp3x.h"
 #define MINWAVERTSTREAM_POOLTAG 'SRWM'
 
 #pragma warning (disable : 4127)
@@ -267,7 +266,7 @@ VOID CMiniportWaveRTStream::GetHWLatency
 
     Latency_->ChipsetDelay = 0;
     Latency_->CodecDelay = 0;
-    Latency_->FifoSize = FIFO_SIZE;
+    Latency_->FifoSize = 0x100/*FIFO_SIZE*/;
 }
 
 //=============================================================================
@@ -312,10 +311,6 @@ _Out_   MEMORY_CACHING_TYPE    *CacheType_
     if ((0 == RequestedSize_) || (RequestedSize_ < m_pWfExt->Format.nBlockAlign))
     {
         return STATUS_UNSUCCESSFUL;
-    }
-
-    if (RequestedSize_ > MAX_BUFFER) {
-        RequestedSize_ = MAX_BUFFER;
     }
 
     RequestedSize_ -= RequestedSize_ % (m_pWfExt->Format.nBlockAlign);
@@ -374,7 +369,7 @@ NTSTATUS CMiniportWaveRTStream::GetPosition
     UINT64 linearPos;
     m_pMiniport->CurrentPosition(NULL, &linearPos);
     Position_->PlayOffset = linearPos;
-    Position_->WriteOffset = linearPos + FIFO_SIZE;
+    Position_->WriteOffset = linearPos/* + FIFO_SIZE*/;
 
     KeReleaseSpinLock(&m_PositionSpinLock, oldIrql);
 

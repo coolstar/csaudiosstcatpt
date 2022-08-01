@@ -104,7 +104,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
+      <Command>cmd /k mkdir "$(Inf2CatSource)" &amp;&amp; copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -112,7 +112,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
+      <Command>cmd /k mkdir "$(Inf2CatSource)" &amp;&amp; copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -120,7 +120,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
+      <Command>cmd /k mkdir "$(Inf2CatSource)" &amp;&amp; copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -128,7 +128,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
+      <Command>cmd /k mkdir "$(Inf2CatSource)" &amp;&amp; copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -136,7 +136,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
+      <Command>cmd /k mkdir "$(Inf2CatSource)" &amp;&amp; copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -144,7 +144,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
+      <Command>cmd /k mkdir "$(Inf2CatSource)" &amp;&amp; copy "$(SolutionDir)Source\Main\$(IntDir)IntcSST2.bin" "$(Inf2CatSource)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

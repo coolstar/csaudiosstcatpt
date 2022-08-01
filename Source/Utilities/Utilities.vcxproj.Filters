@@ -28,21 +28,42 @@
     <ClCompile Include="kshelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="firmware.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dsp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bitops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ipc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="acp_chip_offset_byte.h">
+    <ClInclude Include="hw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="hw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="acp_chip_offset_byte.h">
+    <ClInclude Include="messages.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="acp3x.h">
+    <ClInclude Include="firmware.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hw.h">
+    <ClInclude Include="registers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pa2xxssp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bitops.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

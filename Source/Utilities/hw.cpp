@@ -15,13 +15,42 @@ Abstract:
 #include "definitions.h"
 #include "hw.h"
 
+static NTSTATUS InterruptRoutine(PINTERRUPTSYNC InterruptSync,
+    PVOID DynamicContext) {
+    UNREFERENCED_PARAMETER(InterruptSync);
+    CCsAudioCatptSSTHW* that = (CCsAudioCatptSSTHW*)DynamicContext;
+    return that->dsp_irq_handler();
+}
+
+static VOID WorkerThreadFunc(PVOID Parameter) {
+    CCsAudioCatptSSTHW* that = (CCsAudioCatptSSTHW*)Parameter;
+    return that->dsp_irq_thread();
+}
+
+#if USESSTHW
+static struct catpt_spec wpt_desc = {
+    .core_id = 0x02,
+    .host_dram_offset = 0x000000,
+    .host_iram_offset = 0x0A0000,
+    .host_shim_offset = 0x0FB000,
+    .host_dma_offset = { 0x0FE000, 0x0FF000 },
+    .host_ssp_offset = { 0x0FC000, 0x0FD000 },
+    .dram_mask = WPT_VDRTCTL0_DSRAMPGE_MASK,
+    .iram_mask = WPT_VDRTCTL0_ISRAMPGE_MASK,
+    .d3srampgd_bit = WPT_VDRTCTL0_D3SRAMPGD,
+    .d3pgd_bit = WPT_VDRTCTL0_D3PGD,
+    .pll_shutdown_reg = CATPT_PCI_VDRTCTL2,
+    .pll_shutdown_val = WPT_VDRTCTL2_APLLSE
+};
+#endif
+
 //=============================================================================
-// CCsAudioAcp3xHW
+// CCsAudioCatptSSTHW
 //=============================================================================
 
 //=============================================================================
 #pragma code_seg("PAGE")
-CCsAudioAcp3xHW::CCsAudioAcp3xHW(_In_  PRESOURCELIST           ResourceList)
+CCsAudioCatptSSTHW::CCsAudioCatptSSTHW(_In_  PRESOURCELIST           ResourceList)
 : m_ulMux(0),
     m_bDevSpecific(FALSE),
     m_iDevSpecific(0),
@@ -42,8 +71,10 @@ Return Value:
 {
     PAGED_CODE();
 
-#if USEACPHW
-    PCM_PARTIAL_RESOURCE_DESCRIPTOR partialDescriptor = (ResourceList->FindTranslatedEntry(CmResourceTypeMemory, 0));
+#if USESSTHW
+    spec = &wpt_desc;
+
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR partialDescriptor = ResourceList->FindTranslatedEntry(CmResourceTypeMemory, 0);
     if (partialDescriptor) {
         m_BAR0.Base.Base = MmMapIoSpace(partialDescriptor->u.Memory.Start, partialDescriptor->u.Memory.Length, MmNonCached);
         m_BAR0.Len = partialDescriptor->u.Memory.Length;
@@ -54,42 +85,128 @@ Return Value:
         return;
     }
 
-    m_pme_en = rv_read32(mmACP_PME_EN);
+    partialDescriptor = ResourceList->FindTranslatedEntry(CmResourceTypeMemory, 1);
+    if (partialDescriptor) {
+        m_BAR1.Base.Base = MmMapIoSpace(partialDescriptor->u.Memory.Start, partialDescriptor->u.Memory.Length, MmNonCached);
+        m_BAR1.Len = partialDescriptor->u.Memory.Length;
+}
+    else {
+        m_BAR1.Base.Base = NULL;
+        m_BAR1.Len = 0;
+        return;
+    }
+
+    partialDescriptor = ResourceList->FindTranslatedEntry(CmResourceTypeInterrupt, 0);
+    if (partialDescriptor) {
+        NTSTATUS status = PcNewInterruptSync(&this->m_InterruptSync, NULL,
+            ResourceList, 0, InterruptSyncModeNormal);
+        if (!NT_SUCCESS(status)){
+            this->m_InterruptSync = NULL;
+            return;
+        }
+    }
+    else {
+        this->m_InterruptSync = NULL;
+        return;
+    }
+
+    this->m_WorkQueueItem = (PWORK_QUEUE_ITEM)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(WORK_QUEUE_ITEM), CSAUDIOCATPTSST_POOLTAG);
+    if (this->m_WorkQueueItem) {
+        ExInitializeWorkItem(this->m_WorkQueueItem, WorkerThreadFunc, this);
+    }
+
+    this->fw_ready = false;
+    ExInitializeFastMutex(&clk_mutex);
+
+    ipc_init();
+
+    sram_init(&this->dram, this->spec->host_dram_offset,
+        catpt_dram_size(this));
+    sram_init(&this->iram, this->spec->host_iram_offset,
+        catpt_iram_size(this));
 #else
     UNREFERENCED_PARAMETER(ResourceList);
 #endif
     
     MixerReset();
-} // CsAudioAcp3xHW
+} // CCsAudioCatptSSTHW
 #pragma code_seg()
 
-bool CCsAudioAcp3xHW::ResourcesValidated() {
-#if USEACPHW
+bool CCsAudioCatptSSTHW::ResourcesValidated() {
+#if USESSTHW
     if (!m_BAR0.Base.Base)
         return false;
+    if (!m_BAR1.Base.Base)
+        return false;
+    if (!this->m_InterruptSync)
+        return false;
+    NTSTATUS status = this->m_InterruptSync->RegisterServiceRoutine(InterruptRoutine, (PVOID)this, FALSE);
+    if (!NT_SUCCESS(status)) {
+        return false;
+    }
+    status = this->m_InterruptSync->Connect();
+    if (!NT_SUCCESS(status)) {
+        return false;
+    }
 #endif
     return true;
 }
 
-CCsAudioAcp3xHW::~CCsAudioAcp3xHW() {
-#if USEACPHW
+CCsAudioCatptSSTHW::~CCsAudioCatptSSTHW() {
+#if USESSTHW
+    if (this->m_InterruptSync) {
+        this->m_InterruptSync->Disconnect();
+        this->m_InterruptSync->Release();
+        this->m_InterruptSync = NULL;
+    }
+    if (this->m_WorkQueueItem) {
+        ExFreePoolWithTag(this->m_WorkQueueItem, CSAUDIOCATPTSST_POOLTAG);
+        this->m_WorkQueueItem = NULL;
+    }
+
     if (m_BAR0.Base.Base)
         MmUnmapIoSpace(m_BAR0.Base.Base, m_BAR0.Len);
+    if (m_BAR1.Base.Base)
+        MmUnmapIoSpace(m_BAR1.Base.Base, m_BAR1.Len);
 #endif
 }
 
-#if USEACPHW
-static UINT32 read32(PVOID addr) {
+#if USESSTHW
+void CCsAudioCatptSSTHW::udelay(ULONG usec) {
+    LARGE_INTEGER Interval;
+    Interval.QuadPart = -10 * usec;
+    KeDelayExecutionThread(KernelMode, false, &Interval);
+}
+
+UINT32 CCsAudioCatptSSTHW::readl(PVOID addr) {
     UINT32 ret = *(UINT32*)addr;
     //DbgPrint("Read from %p: 0x%x\n", addr, ret);
     return ret;
 }
 
-static void write32(PVOID addr, UINT32 data) {
+void CCsAudioCatptSSTHW::writel(UINT32 data, PVOID addr) {
     *(UINT32*)addr = data;
     //DbgPrint("Write to %p: 0x%x\n", addr, data);
 }
 
+NTSTATUS CCsAudioCatptSSTHW::readl_poll_timeout(PVOID addr, UINT32 val, UINT32 mask, ULONG sleep_us, ULONG timeout_us) {
+    UINT32 reg;
+    LARGE_INTEGER StartTime;
+    KeQuerySystemTimePrecise(&StartTime);
+    for (;;) {
+        reg = readl(addr);
+        LARGE_INTEGER CurrentTime;
+        KeQuerySystemTimePrecise(&CurrentTime);
+        if ((reg & mask) == val || ((CurrentTime.QuadPart - StartTime.QuadPart) / 10) > timeout_us)
+            break; \
+            if (sleep_us)\
+                udelay(sleep_us); \
+    }
+    return (reg & mask) == val ? STATUS_SUCCESS : STATUS_TIMEOUT;
+}
+#endif
+
+#if USEACPHW
 UINT32 CCsAudioAcp3xHW::rv_read32(UINT32 reg)
 {
     return read32(m_BAR0.Base.baseptr + reg - ACP3x_PHY_BASE_ADDRESS);
@@ -98,54 +215,6 @@ UINT32 CCsAudioAcp3xHW::rv_read32(UINT32 reg)
 void CCsAudioAcp3xHW::rv_write32(UINT32 reg, UINT32 val)
 {
     write32(m_BAR0.Base.baseptr + reg - ACP3x_PHY_BASE_ADDRESS, val);
-}
-
-NTSTATUS CCsAudioAcp3xHW::acp3x_power_on() {
-    UINT32 val;
-    int timeout;
-
-    val = rv_read32(mmACP_PGFSM_STATUS);
-    if (val == 0)
-        return STATUS_SUCCESS;
-
-    if (!((val & ACP_PGFSM_STATUS_MASK) ==
-        ACP_POWER_ON_IN_PROGRESS))
-        rv_write32(mmACP_PGFSM_CONTROL, ACP_PGFSM_CNTL_POWER_ON_MASK);
-
-    timeout = 0;
-    while (++timeout < 500) {
-        val = rv_read32(mmACP_PGFSM_STATUS);
-        if (!val) {
-            /* ACP power On clears PME_EN.
-             * Restore the value to its prior state
-             */
-            rv_write32(mmACP_PME_EN, m_pme_en);
-            return STATUS_SUCCESS;
-        }
-
-        LARGE_INTEGER Interval;
-        Interval.QuadPart = -10;
-        KeDelayExecutionThread(KernelMode, false, &Interval); //udelay(1)
-    }
-    return STATUS_TIMEOUT;
-}
-
-NTSTATUS CCsAudioAcp3xHW::acp3x_power_off() {
-    UINT32 val;
-    int timeout;
-
-    rv_write32(mmACP_PGFSM_CONTROL, ACP_PGFSM_CNTL_POWER_OFF_MASK);
-    timeout = 0;
-    while (++timeout < 500) {
-        val = rv_read32(mmACP_PGFSM_STATUS);
-        if ((val & ACP_PGFSM_STATUS_MASK) == ACP_POWERED_OFF)
-            return STATUS_SUCCESS;
-
-        LARGE_INTEGER Interval;
-        Interval.QuadPart = -10;
-        KeDelayExecutionThread(KernelMode, false, &Interval); //udelay(1)
-    }
-    return STATUS_TIMEOUT;
 }
 
 NTSTATUS CCsAudioAcp3xHW::acp3x_reset() {
@@ -170,9 +239,9 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_reset() {
 }
 #endif
 
-NTSTATUS CCsAudioAcp3xHW::acp3x_init() {
-#if USEACPHW
-    bt_running_streams = 0;
+NTSTATUS CCsAudioCatptSSTHW::sst_init() {
+#if USESSTHW
+    /*bt_running_streams = 0;
     sp_running_streams = 0;
 
     NTSTATUS status = acp3x_power_on();
@@ -180,29 +249,34 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_init() {
         return status;
     }
     status = acp3x_reset();
-    return status;
-#else
-    return STATUS_SUCCESS;
-#endif
-}
-
-NTSTATUS CCsAudioAcp3xHW::acp3x_deinit() {
-#if USEACPHW
-    bt_running_streams = 0;
-    sp_running_streams = 0;
-
-    NTSTATUS status = acp3x_reset();
+    return status;*/
+    NTSTATUS status = dsp_power_up();
     if (!NT_SUCCESS(status)) {
         return status;
     }
-    status = acp3x_power_off();
+    catpt_boot_firmware(FALSE);
+
+    return status;
+#else
+    
+
+    return STATUS_SUCCESS;
+#endif
+}
+
+NTSTATUS CCsAudioCatptSSTHW::sst_deinit() {
+#if USESSTHW
+    NTSTATUS status = dsp_power_down();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
     return status;
 #else
     return STATUS_SUCCESS;
 #endif
 }
 
-NTSTATUS CCsAudioAcp3xHW::acp3x_hw_params(eDeviceType deviceType) {
+NTSTATUS CCsAudioCatptSSTHW::acp3x_hw_params(eDeviceType deviceType) {
 #if USEACPHW
     UINT32 xfer_resolution = 0x02; //s16le
 
@@ -235,7 +309,7 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_hw_params(eDeviceType deviceType) {
     return STATUS_SUCCESS;
 }
 
-NTSTATUS CCsAudioAcp3xHW::acp3x_program_dma(eDeviceType deviceType, PMDL mdl, IPortWaveRTStream *stream) {
+NTSTATUS CCsAudioCatptSSTHW::acp3x_program_dma(eDeviceType deviceType, PMDL mdl, IPortWaveRTStream *stream) {
 #if USEACPHW
     int pageCount = stream->GetPhysicalPagesCount(mdl);
     if (pageCount < 1) {
@@ -331,7 +405,7 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_program_dma(eDeviceType deviceType, PMDL mdl, IP
     return STATUS_SUCCESS;
 }
 
-NTSTATUS CCsAudioAcp3xHW::acp3x_play(eDeviceType deviceType, UINT32 byteCount) {
+NTSTATUS CCsAudioCatptSSTHW::acp3x_play(eDeviceType deviceType, UINT32 byteCount) {
 #if USEACPHW
     UINT32 water_val;
     UINT32 reg_val;
@@ -396,7 +470,7 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_play(eDeviceType deviceType, UINT32 byteCount) {
 return STATUS_SUCCESS;
 }
 
-NTSTATUS CCsAudioAcp3xHW::acp3x_stop(eDeviceType deviceType) {
+NTSTATUS CCsAudioCatptSSTHW::acp3x_stop(eDeviceType deviceType) {
 #if USEACPHW
     UINT32 reg_val;
     UINT32 ier_val;
@@ -448,7 +522,7 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_stop(eDeviceType deviceType) {
     return STATUS_SUCCESS;
 }
 
-NTSTATUS CCsAudioAcp3xHW::acp3x_current_position(eDeviceType deviceType, UINT32 *linkPos, UINT64 *linearPos) {
+NTSTATUS CCsAudioCatptSSTHW::acp3x_current_position(eDeviceType deviceType, UINT32 *linkPos, UINT64 *linearPos) {
 #if USEACPHW
     UINT32 link_reg;
     UINT32 linearHigh_reg;
@@ -496,7 +570,7 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_current_position(eDeviceType deviceType, UINT32 
     return STATUS_SUCCESS;
 }
 
-NTSTATUS CCsAudioAcp3xHW::acp3x_set_position(eDeviceType deviceType, UINT32 linkPos, UINT64 linearPos) {
+NTSTATUS CCsAudioCatptSSTHW::acp3x_set_position(eDeviceType deviceType, UINT32 linkPos, UINT64 linearPos) {
 #if USEACPHW
     UINT32 link_reg;
     UINT32 linearHigh_reg;
@@ -541,7 +615,7 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_set_position(eDeviceType deviceType, UINT32 link
 
 //=============================================================================
 BOOL
-CCsAudioAcp3xHW::bGetDevSpecific()
+CCsAudioCatptSSTHW::bGetDevSpecific()
 /*++
 
 Routine Description:
@@ -563,7 +637,7 @@ Return Value:
 
 //=============================================================================
 void
-CCsAudioAcp3xHW::bSetDevSpecific
+CCsAudioCatptSSTHW::bSetDevSpecific
 (
     _In_  BOOL                bDevSpecific
 )
@@ -588,7 +662,7 @@ Return Value:
 
 //=============================================================================
 INT
-CCsAudioAcp3xHW::iGetDevSpecific()
+CCsAudioCatptSSTHW::iGetDevSpecific()
 /*++
 
 Routine Description:
@@ -610,7 +684,7 @@ Return Value:
 
 //=============================================================================
 void
-CCsAudioAcp3xHW::iSetDevSpecific
+CCsAudioCatptSSTHW::iSetDevSpecific
 (
     _In_  INT                 iDevSpecific
 )
@@ -635,7 +709,7 @@ Return Value:
 
 //=============================================================================
 UINT
-CCsAudioAcp3xHW::uiGetDevSpecific()
+CCsAudioCatptSSTHW::uiGetDevSpecific()
 /*++
 
 Routine Description:
@@ -657,7 +731,7 @@ Return Value:
 
 //=============================================================================
 void
-CCsAudioAcp3xHW::uiSetDevSpecific
+CCsAudioCatptSSTHW::uiSetDevSpecific
 (
     _In_  UINT                uiDevSpecific
 )
@@ -682,7 +756,7 @@ Return Value:
 
 //=============================================================================
 ULONG                       
-CCsAudioAcp3xHW::GetMixerMux()
+CCsAudioCatptSSTHW::GetMixerMux()
 /*++
 
 Routine Description:
@@ -702,7 +776,7 @@ Return Value:
 
 //=============================================================================
 LONG
-CCsAudioAcp3xHW::GetMixerPeakMeter
+CCsAudioCatptSSTHW::GetMixerPeakMeter
 (   
     _In_  ULONG                   ulNode,
     _In_  ULONG                   ulChannel
@@ -738,7 +812,7 @@ Return Value:
 //=============================================================================
 #pragma code_seg("PAGE")
 void 
-CCsAudioAcp3xHW::MixerReset()
+CCsAudioCatptSSTHW::MixerReset()
 /*++
 
 Routine Description:
@@ -767,7 +841,7 @@ Return Value:
 
 //=============================================================================
 void                        
-CCsAudioAcp3xHW::SetMixerMux
+CCsAudioCatptSSTHW::SetMixerMux
 (
     _In_  ULONG                   ulNode
 )

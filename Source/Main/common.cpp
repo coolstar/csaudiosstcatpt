@@ -37,7 +37,7 @@ private:
     WDFDEVICE               m_WdfDevice;            // Wdf device. 
     DEVICE_POWER_STATE      m_PowerState;
 
-    PCCsAudioAcp3xHW        m_pHW;                  // HW object
+    PCCsAudioCatptSSTHW        m_pHW;                  // HW object
     PPORTCLSETWHELPER       m_pPortClsEtwHelper;
 
     static LONG             m_AdapterInstances;     // # of adapter objects.
@@ -423,7 +423,7 @@ Return Value:
 
     if (m_pHW)
     {
-        m_pHW->acp3x_deinit();
+        m_pHW->sst_deinit();
         delete m_pHW;
         m_pHW = NULL;
     }
@@ -590,25 +590,25 @@ Return Value:
 
     // Initialize HW.
     // 
-    m_pHW = new (POOL_FLAG_NON_PAGED, CSAUDIOACP3X_POOLTAG)  CCsAudioAcp3xHW(ResourceList);
+    m_pHW = new (POOL_FLAG_NON_PAGED, CSAUDIOCATPTSST_POOLTAG)  CCsAudioCatptSSTHW(ResourceList);
     if (!m_pHW)
     {
-        DPF(D_TERSE, ("Insufficient memory for Audio CoProcessor HW"));
+        DPF(D_TERSE, ("Insufficient memory for Smart Sound HW"));
         ntStatus = STATUS_INSUFFICIENT_RESOURCES;
     }
     IF_FAILED_JUMP(ntStatus, Done);
 
     if (!m_pHW->ResourcesValidated())
     {
-        DPF(D_TERSE, ("Insufficient resources for Audio CoProcessor HW"));
+        DPF(D_TERSE, ("Insufficient resources for Smart Sound HW"));
         ntStatus = STATUS_INSUFFICIENT_RESOURCES;
     }
     IF_FAILED_JUMP(ntStatus, Done);
 
-    ntStatus = m_pHW->acp3x_init();
+    ntStatus = m_pHW->sst_init();
     if (!NT_SUCCESS(ntStatus))
     {
-        DPF(D_TERSE, ("Unable to in initialize AMD ACP"));
+        DPF(D_TERSE, ("Unable to in initialize Intel SST"));
     }
     IF_FAILED_JUMP(ntStatus, Done);
     
@@ -1251,14 +1251,15 @@ Note:
         //
         switch (NewState.DeviceState)
         {
+            //TODO: re-enable D0 / D3 states
             case PowerDeviceD0:
-                m_pHW->acp3x_init();
+                //m_pHW->sst_init();
                 break;
             case PowerDeviceD1:
             case PowerDeviceD2:
                 break;
             case PowerDeviceD3:
-                m_pHW->acp3x_deinit();
+                //m_pHW->sst_deinit();
                 break;
             default:
             
