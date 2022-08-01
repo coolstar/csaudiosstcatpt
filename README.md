@@ -1,6 +1,6 @@
-# CoolStar Audio for Intel Haswell / Broadwell SSDT
+# CoolStar Audio for Intel Haswell / Broadwell SST
 
-Open Source alternative for the Intel Haswell / Broadwell SSDT driver (untested on Haswell)
+Open Source alternative for the Intel Haswell / Broadwell SST driver (untested on Haswell)
 
 Tested on Google Pixel 2 LS (Core i7-5500U)
 
