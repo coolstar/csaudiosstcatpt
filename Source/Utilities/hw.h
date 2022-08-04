@@ -57,6 +57,14 @@ enum PCI_POWER {
 #include "messages.h"
 #include "firmware.h"
 #include "registers.h"
+#include "dw_dma.h"
+
+/*
+* Either engine 0 or 1 can be used for image loading.
+* Align with Intel Windows driver equivalent and stick to engine 1.
+*/
+#define CATPT_DMA_DEVID		1
+#define CATPT_DMA_DSP_ADDR_MASK	GENMASK(31, 20)
 
 struct catpt_ipc_msg {
     union {
@@ -131,6 +139,8 @@ protected:
     RESOURCE dram;
     RESOURCE iram;
     //PRESOURCE scratch;
+
+    DwDMA* dmac;
 #endif
 
 #if USEACPHW

@@ -63,6 +63,8 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct cat
 	}
 
 	UINT32 dst_addr = sram->start + blk->ram_offset;
+	dst_addr |= CATPT_DMA_DSP_ADDR_MASK;
+
 	//TODO: mark region as busy
 
 	UNREFERENCED_PARAMETER(alloc);
@@ -70,7 +72,11 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct cat
 	/* advance to data area */
 	pAddr.QuadPart += sizeof(*blk);
 
+	DbgPrint("memcpy to DSP address 0x%lx (from 0x%llx)\n", dst_addr, pAddr.QuadPart);
+
 	//TODO: dma_memcpy_todsp
+	this->dmac->transfer_dma(dst_addr, pAddr.LowPart, blk->size);
+
 	status = STATUS_SUCCESS;
 
 	//TODO: release busy region if dma error
@@ -171,7 +177,7 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_image(PCWSTR path, BOOL restore) {
 	}
 
 	PHYSICAL_ADDRESS maxAddr;
-	maxAddr.QuadPart = MAXULONG64;
+	maxAddr.QuadPart = MAXULONG32;
 	void* vaddr;
 	vaddr = MmAllocateContiguousMemory(img->size, maxAddr);
 	if (!vaddr) {
@@ -222,6 +228,7 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_boot_firmware(BOOL restore) {
 			return STATUS_TIMEOUT;
 		}
 	}
+	DbgPrint("Firmware ready!!!\n");
 
 	/* update sram pg & clock once done booting */
 	dsp_update_srampge(&this->dram, this->spec->dram_mask);

@@ -277,6 +277,7 @@
   <ItemGroup>
     <ClCompile Include="bitops.c" />
     <ClCompile Include="dsp.cpp" />
+    <ClCompile Include="dw_dma.cpp" />
     <ClCompile Include="firmware.cpp" />
     <ClCompile Include="hw.cpp" />
     <ClCompile Include="ipc.cpp" />
@@ -294,6 +295,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitops.h" />
+    <ClInclude Include="dw_dma.h" />
     <ClInclude Include="firmware.h" />
     <ClInclude Include="pa2xxssp.h" />
     <ClInclude Include="registers.h" />

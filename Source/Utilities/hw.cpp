@@ -250,10 +250,18 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
     }
     status = acp3x_reset();
     return status;*/
+
     NTSTATUS status = dsp_power_up();
     if (!NT_SUCCESS(status)) {
         return status;
     }
+
+    this->dmac = new (POOL_FLAG_NON_PAGED, CSAUDIOCATPTSST_POOLTAG)DwDMA(this->lpe_ba + this->spec->host_dma_offset[CATPT_DMA_DEVID]);
+    status = this->dmac->init();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
     catpt_boot_firmware(FALSE);
 
     return status;
@@ -266,6 +274,11 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
 
 NTSTATUS CCsAudioCatptSSTHW::sst_deinit() {
 #if USESSTHW
+    if (this->dmac) {
+        delete this->dmac;
+        this->dmac = NULL;
+    }
+
     NTSTATUS status = dsp_power_down();
     if (!NT_SUCCESS(status)) {
         return status;
