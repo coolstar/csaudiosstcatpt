@@ -14,6 +14,7 @@ Abstract:
 --*/
 #include "definitions.h"
 #include "hw.h"
+#include "resource.h"
 
 static NTSTATUS InterruptRoutine(PINTERRUPTSYNC InterruptSync,
     PVOID DynamicContext) {
@@ -154,6 +155,11 @@ bool CCsAudioCatptSSTHW::ResourcesValidated() {
 
 CCsAudioCatptSSTHW::~CCsAudioCatptSSTHW() {
 #if USESSTHW
+    if (this->ipc_rx.data){
+        ExFreePoolWithTag(this->ipc_rx.data, CSAUDIOCATPTSST_POOLTAG);
+        this->ipc_rx.data = NULL;
+    }
+
     if (this->m_InterruptSync) {
         this->m_InterruptSync->Disconnect();
         this->m_InterruptSync->Release();
@@ -202,7 +208,7 @@ NTSTATUS CCsAudioCatptSSTHW::readl_poll_timeout(PVOID addr, UINT32 val, UINT32 m
             if (sleep_us)\
                 udelay(sleep_us); \
     }
-    return (reg & mask) == val ? STATUS_SUCCESS : STATUS_TIMEOUT;
+    return (reg & mask) == val ? STATUS_SUCCESS : STATUS_IO_TIMEOUT;
 }
 #endif
 
@@ -235,7 +241,7 @@ NTSTATUS CCsAudioAcp3xHW::acp3x_reset() {
         if (!val)
             return STATUS_SUCCESS;
     }
-    return STATUS_TIMEOUT;
+    return STATUS_IO_TIMEOUT;
 }
 #endif
 
@@ -262,7 +268,37 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
         return status;
     }
 
-    catpt_boot_firmware(FALSE);
+    {
+        status = catpt_boot_firmware(FALSE);
+        if (!NT_SUCCESS(status)) {
+            return status;
+        }
+
+        /* restrict FW Core dump area */
+        __request_region(&this->dram, 0, 0x200, 0);
+        /* restrict entire area following BASE_FW - highest offset in DRAM */
+        PRESOURCE res;
+        for (res = this->dram.child; res->sibling; res = res->sibling)
+            ;
+        __request_region(&this->dram, res->end + 1,
+            this->dram.end - res->end, 0);
+
+        {
+            //get mixer info
+            union catpt_global_msg msg = CATPT_GLOBAL_MSG(GET_MIXER_STREAM_INFO);
+            struct catpt_ipc_msg request = { {0} }, reply;
+
+            request.header = msg.val;
+            reply.size = sizeof(this->mixer);
+            reply.data = &this->mixer;
+
+            status = ipc_send_msg(request, &reply, CATPT_IPC_TIMEOUT_MS);
+            if (!NT_SUCCESS(status)) {
+                DbgPrint("Failed to get mixer info!\n");
+                return status;
+            }
+        }
+    }
 
     return status;
 #else
@@ -283,6 +319,9 @@ NTSTATUS CCsAudioCatptSSTHW::sst_deinit() {
     if (!NT_SUCCESS(status)) {
         return status;
     }
+
+    sram_free(&this->iram);
+    sram_free(&this->dram);
     return status;
 #else
     return STATUS_SUCCESS;

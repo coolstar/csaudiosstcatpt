@@ -1,6 +1,7 @@
 #include <ntddk.h>
 #include "definitions.h"
 #include "hw.h"
+#include "resource.h"
 
 /* FW load (200ms) plus operational delays */
 #define FW_READY_TIMEOUT_MS	250
@@ -48,6 +49,17 @@ void CCsAudioCatptSSTHW::sram_init(PRESOURCE sram, UINT32 start, UINT32 size) {
 	sram->end = start + size - 1;
 }
 
+void CCsAudioCatptSSTHW::sram_free(PRESOURCE sram) {
+	PRESOURCE res, save;
+
+	for (res = sram->child; res;) {
+		save = res->sibling;
+		release_resource(res);
+		ExFreePoolWithTag(res, CSAUDIOCATPTSST_POOLTAG);
+		res = save;
+	}
+}
+
 NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct catpt_fw_block_hdr* blk, bool alloc)
 {
 	NTSTATUS status;
@@ -63,11 +75,16 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct cat
 	}
 
 	UINT32 dst_addr = sram->start + blk->ram_offset;
-	dst_addr |= CATPT_DMA_DSP_ADDR_MASK;
-
 	//TODO: mark region as busy
 
-	UNREFERENCED_PARAMETER(alloc);
+	if (alloc) {
+		PRESOURCE res = __request_region(sram, dst_addr, blk->size, 0);
+		if (!res) {
+			return STATUS_DEVICE_BUSY;
+		}
+	}
+
+	dst_addr |= CATPT_DMA_DSP_ADDR_MASK;
 
 	/* advance to data area */
 	pAddr.QuadPart += sizeof(*blk);
@@ -75,11 +92,11 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct cat
 	DbgPrint("memcpy to DSP address 0x%lx (from 0x%llx)\n", dst_addr, pAddr.QuadPart);
 
 	//TODO: dma_memcpy_todsp
-	this->dmac->transfer_dma(dst_addr, pAddr.LowPart, blk->size);
+	status = this->dmac->transfer_dma(dst_addr, pAddr.LowPart, blk->size);
 
-	status = STATUS_SUCCESS;
-
-	//TODO: release busy region if dma error
+	if (!NT_SUCCESS(status)) {
+		__release_region(sram, dst_addr, blk->size);
+	}
 
 	return status;
 }

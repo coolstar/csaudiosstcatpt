@@ -283,6 +283,7 @@
     <ClCompile Include="ipc.cpp" />
     <ClCompile Include="kshelper.cpp" />
     <ClCompile Include="loader.cpp" />
+    <ClCompile Include="resource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Inf Exclude="@(Inf)" Include="*.inf" />
@@ -301,6 +302,7 @@
     <ClInclude Include="registers.h" />
     <ClInclude Include="hw.h" />
     <ClInclude Include="messages.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

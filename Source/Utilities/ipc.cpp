@@ -15,7 +15,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_arm(struct catpt_fw_ready* config)
 	 * thus no separate buffer is allocated for it.
 	 */
 	this->ipc_rx.data = ExAllocatePool2(POOL_FLAG_NON_PAGED, config->outbox_size, CSAUDIOCATPTSST_POOLTAG);
-	if (this->ipc_rx.data)
+	if (!this->ipc_rx.data)
 		return STATUS_NO_MEMORY;
 
 	memcpy(&ipc_config, config, sizeof(*config));
@@ -24,13 +24,102 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_arm(struct catpt_fw_ready* config)
 	return STATUS_SUCCESS;
 }
 
+NTSTATUS CCsAudioCatptSSTHW::ipc_send_msg(struct catpt_ipc_msg request,
+	struct catpt_ipc_msg* reply, int timeout) {
+	if (!this->ipc_ready) {
+		return STATUS_NO_SUCH_DEVICE;
+	}
+
+	if (request.size > ipc_config.outbox_size || (reply && reply->size > ipc_config.outbox_size)) {
+		return STATUS_BUFFER_OVERFLOW;
+	}
+
+	//msg init
+	{
+		ipc_rx.header = 0;
+		ipc_rx.size = reply ? reply->size : 0;
+
+		this->ipc_done = false;
+		this->ipc_busy = true;
+	}
+
+	dsp_send_tx(&request);
+
+	NTSTATUS status;
+	status = ipc_wait_completion(timeout);
+	if (!NT_SUCCESS(status)) {
+		DbgPrint("IPC Failed!!!\n");
+		this->ipc_ready = false;
+		return status;
+	}
+
+	int ret = ipc_rx.rsp.status;
+	if (reply) {
+		reply->header = ipc_rx.header;
+
+		if (!ret && reply->data) {
+			memcpy(reply->data, ipc_rx.data, reply->size);
+		}
+	}
+
+	if (ret) {
+		DbgPrint("SST returned %d\n", ret);
+		return STATUS_INVALID_DEVICE_STATE;
+	}
+	return status;
+}
+
+NTSTATUS CCsAudioCatptSSTHW::ipc_wait_completion(int timeout) {
+	LARGE_INTEGER StartTime;
+	KeQuerySystemTimePrecise(&StartTime);
+	while (!this->ipc_done) {
+		LARGE_INTEGER CurrentTime;
+		KeQuerySystemTimePrecise(&CurrentTime);
+
+		if (((CurrentTime.QuadPart - StartTime.QuadPart) / (10 * 1000)) >= timeout) {
+			DbgPrint("Timed out waiting for transmit IPC\n");
+			return STATUS_IO_TIMEOUT;
+		}
+
+		LARGE_INTEGER Interval;
+		Interval.QuadPart = -10 * 1000;
+		KeDelayExecutionThread(KernelMode, false, &Interval);
+	}
+
+	if (ipc_rx.rsp.status != CATPT_REPLY_PENDING)
+		return STATUS_SUCCESS;
+
+	KeQuerySystemTimePrecise(&StartTime);
+	while (this->ipc_busy) {
+		LARGE_INTEGER CurrentTime;
+		KeQuerySystemTimePrecise(&CurrentTime);
+
+		if (((CurrentTime.QuadPart - StartTime.QuadPart) / (10 * 1000)) >= timeout) {
+			DbgPrint("Timed out waiting for receive IPC\n");
+			return STATUS_IO_TIMEOUT;
+		}
+
+		LARGE_INTEGER Interval;
+		Interval.QuadPart = -10 * 1000;
+		KeDelayExecutionThread(KernelMode, false, &Interval);
+	}
+	return STATUS_SUCCESS;
+}
+
+void CCsAudioCatptSSTHW::dsp_send_tx(const struct catpt_ipc_msg* tx) {
+	UINT32 header = tx->header | CATPT_IPCC_BUSY;
+
+	RtlCopyMemory(catpt_outbox_addr(this), tx->data, tx->size);
+	catpt_writel_shim(this, IPCC, header);
+}
+
 void CCsAudioCatptSSTHW::dsp_copy_rx(UINT32 header)
 {
 	this->ipc_rx.header = header;
 	if (this->ipc_rx.rsp.status != CATPT_REPLY_SUCCESS)
 		return;
 
-	memcpy(this->ipc_rx.data, catpt_outbox_addr(this), this->ipc_rx.size);
+	RtlCopyMemory(this->ipc_rx.data, catpt_outbox_addr(this), this->ipc_rx.size);
 }
 
 void CCsAudioCatptSSTHW::dsp_process_response(UINT32 header)
@@ -104,6 +193,8 @@ NTSTATUS CCsAudioCatptSSTHW::dsp_irq_handler() {
 	NTSTATUS status;
 	UINT32 isc, ipcc;
 	isc = catpt_readl_shim(this, ISC);
+
+	DbgPrint("Got IRQ\n");
 
 	/* immediate reply */
 	if (isc & CATPT_ISC_IPCCD) {

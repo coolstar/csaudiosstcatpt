@@ -39,8 +39,9 @@ typedef struct _PCI_BAR {
 } PCI_BAR, * PPCI_BAR;
 
 typedef struct _RESOURCE {
-    UINT32 start;
-    UINT32 end;
+    UINT64 start;
+    UINT64 end;
+    int flags;
     struct _RESOURCE* parent, * sibling, * child;
 } RESOURCE, *PRESOURCE;
 
@@ -65,6 +66,8 @@ enum PCI_POWER {
 */
 #define CATPT_DMA_DEVID		1
 #define CATPT_DMA_DSP_ADDR_MASK	GENMASK(31, 20)
+
+#define CATPT_IPC_TIMEOUT_MS	300
 
 struct catpt_ipc_msg {
     union {
@@ -153,6 +156,9 @@ protected:
 private:
 #if USESSTHW
     const struct catpt_spec* spec;
+
+    struct catpt_mixer_stream_info mixer;
+
     catpt_stream outStream;
     catpt_stream inStream;
     FAST_MUTEX clk_mutex;
@@ -181,6 +187,7 @@ private:
 
     //loader private methods
     void sram_init(PRESOURCE sram, UINT32 start, UINT32 size);
+    void sram_free(PRESOURCE sram);
     NTSTATUS catpt_load_block(PHYSICAL_ADDRESS pAddr, struct catpt_fw_block_hdr* blk, bool alloc);
     NTSTATUS catpt_load_module(PHYSICAL_ADDRESS paddr, struct catpt_fw_mod_hdr* mod);
     NTSTATUS catpt_load_firmware(PHYSICAL_ADDRESS paddr, struct catpt_fw_hdr* fw);
@@ -200,6 +207,10 @@ private:
     //IPC private methods
     void ipc_init();
     NTSTATUS ipc_arm(struct catpt_fw_ready* config);
+    NTSTATUS ipc_send_msg(struct catpt_ipc_msg request,
+        struct catpt_ipc_msg* reply, int timeout);
+    NTSTATUS ipc_wait_completion(int timeout);
+    void dsp_send_tx(const struct catpt_ipc_msg* tx);
     void dsp_copy_rx(UINT32 header);
     void dsp_process_response(UINT32 header);
     //IPC methods
