@@ -194,8 +194,6 @@ NTSTATUS CCsAudioCatptSSTHW::dsp_irq_handler() {
 	UINT32 isc, ipcc;
 	isc = catpt_readl_shim(this, ISC);
 
-	DbgPrint("Got IRQ\n");
-
 	/* immediate reply */
 	if (isc & CATPT_ISC_IPCCD) {
 		/* mask host DONE interrupt */

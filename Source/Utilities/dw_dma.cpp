@@ -266,8 +266,6 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 		ctlhi = this->bytes2block(dwc, len - offset, src_width, &xfer_count);
 
 		//write sar, dar, ctllo, ctlhi
-		DbgPrint("Xfer Count for block: %lld\n", xfer_count);
-
 		struct dw_lli* cur = (struct dw_lli*)curVaddr;
 		if (curVaddr + sizeof(struct dw_lli) > vaddr + 0x1000) {
 			status = STATUS_NO_MEMORY;
@@ -286,7 +284,6 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 			paddr = MmGetPhysicalAddress(cur);
 
 			prev->llp = paddr.LowPart | lms;
-			DbgPrint("Wrote llp to lli: 0x%lx\n", prev->llp);
 		}
 		prev = cur;
 
@@ -299,7 +296,6 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 
 	PHYSICAL_ADDRESS paddr;
 	paddr = MmGetPhysicalAddress(vaddr);
-	DbgPrint("Allocated buffers. First buffer at 0x%lx (virt 0x%llx)\n", paddr.LowPart, vaddr);
 
 	//Begin start transfer
 	{
@@ -324,7 +320,6 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 	channel_set_bit(this, MASK.XFER, dwc->mask);
 	channel_set_bit(this, MASK.ERROR, dwc->mask);
 
-	DbgPrint("Wrote llp: 0x%lx\n", paddr.LowPart);
 	channel_writel(dwc, LLP, paddr.LowPart | lms);
 	channel_writel(dwc, CTL_LO, DWC_CTLL_LLP_D_EN | DWC_CTLL_LLP_S_EN);
 	channel_writel(dwc, CTL_HI, 0);
@@ -365,8 +360,6 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 			}
 			break;
 		}
-
-		DbgPrint("Current llp: 0x%lx\n", llp);
 
 		LARGE_INTEGER Interval;
 		Interval.QuadPart = -10 * 10;

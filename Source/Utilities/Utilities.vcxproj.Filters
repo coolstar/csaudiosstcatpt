@@ -49,6 +49,9 @@
     <ClCompile Include="resource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pcm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hw.h">

@@ -60,6 +60,23 @@ void CCsAudioCatptSSTHW::sram_free(PRESOURCE sram) {
 	}
 }
 
+PRESOURCE CCsAudioCatptSSTHW::catpt_request_region(PRESOURCE root, size_t size)
+{
+	PRESOURCE res = root->child;
+	size_t addr = root->start;
+
+	for (;;) {
+		if (res->start - addr >= size)
+			break;
+		addr = res->end + 1;
+		res = res->sibling;
+		if (!res)
+			return NULL;
+	}
+
+	return __request_region(root, addr, size, 0);
+}
+
 NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct catpt_fw_block_hdr* blk, bool alloc)
 {
 	NTSTATUS status;

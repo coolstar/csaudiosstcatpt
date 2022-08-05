@@ -298,6 +298,15 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
                 return status;
             }
         }
+
+        status = catpt_arm_stream_templates();
+        if (!NT_SUCCESS(status)) {
+            DbgPrint("arm templates failed\n");
+            return status;
+        }
+
+        /* update dram pg for scratch and restricted regions */
+        dsp_update_srampge(&this->dram, this->spec->dram_mask);
     }
 
     return status;

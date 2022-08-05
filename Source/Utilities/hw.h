@@ -141,7 +141,7 @@ protected:
 
     RESOURCE dram;
     RESOURCE iram;
-    //PRESOURCE scratch;
+    PRESOURCE scratch;
 
     DwDMA* dmac;
 #endif
@@ -188,6 +188,8 @@ private:
     //loader private methods
     void sram_init(PRESOURCE sram, UINT32 start, UINT32 size);
     void sram_free(PRESOURCE sram);
+    PRESOURCE catpt_request_region(PRESOURCE root, size_t size);
+
     NTSTATUS catpt_load_block(PHYSICAL_ADDRESS pAddr, struct catpt_fw_block_hdr* blk, bool alloc);
     NTSTATUS catpt_load_module(PHYSICAL_ADDRESS paddr, struct catpt_fw_mod_hdr* mod);
     NTSTATUS catpt_load_firmware(PHYSICAL_ADDRESS paddr, struct catpt_fw_hdr* fw);
@@ -214,6 +216,9 @@ private:
     void dsp_copy_rx(UINT32 header);
     void dsp_process_response(UINT32 header);
     //IPC methods
+
+    //PCM private methods
+    NTSTATUS catpt_arm_stream_templates();
    
 public:
     void dsp_irq_thread();
