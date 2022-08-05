@@ -1251,15 +1251,14 @@ Note:
         //
         switch (NewState.DeviceState)
         {
-            //TODO: re-enable D0 / D3 states
             case PowerDeviceD0:
-                //m_pHW->sst_init();
+                m_pHW->sst_init();
                 break;
             case PowerDeviceD1:
             case PowerDeviceD2:
                 break;
             case PowerDeviceD3:
-                //m_pHW->sst_deinit();
+                m_pHW->sst_deinit();
                 break;
             default:
             
