@@ -10,9 +10,6 @@
     <ClCompile Include="newdelete.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="common.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="csaudiosstcatpt.rc" />
   </ItemGroup>
   <ItemGroup>

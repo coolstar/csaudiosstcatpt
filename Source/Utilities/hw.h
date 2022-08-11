@@ -258,10 +258,9 @@ public:
     NTSTATUS sst_init();
     NTSTATUS sst_deinit();
 
-    NTSTATUS acp3x_hw_params(eDeviceType deviceType);
-    NTSTATUS acp3x_program_dma(eDeviceType deviceType, PMDL mdl, IPortWaveRTStream* stream);
-    NTSTATUS acp3x_play(eDeviceType deviceType, UINT32 byteCount);
-    NTSTATUS acp3x_stop(eDeviceType deviceType);
+    NTSTATUS sst_program_dma(eDeviceType deviceType, UINT32 byteCount, PMDL mdl, IPortWaveRTStream* stream);
+    NTSTATUS sst_play(eDeviceType deviceType);
+    NTSTATUS sst_stop(eDeviceType deviceType);
     NTSTATUS acp3x_current_position(eDeviceType deviceType, UINT32* linkPos, UINT64* linearPos);
     NTSTATUS acp3x_set_position(eDeviceType deviceType, UINT32 linkPos, UINT64 linearPos);
     

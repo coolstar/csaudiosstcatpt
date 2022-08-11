@@ -279,6 +279,7 @@ DECLARE_INTERFACE_(IAdapterCommon, IUnknown)
         (
             THIS_
             _In_ eDeviceType deviceType,
+            _In_ UINT32 byteCount,
             _In_ PMDL mdl,
             _In_ IPortWaveRTStream * stream
         ) PURE;
@@ -286,8 +287,7 @@ DECLARE_INTERFACE_(IAdapterCommon, IUnknown)
     STDMETHOD_(NTSTATUS, StartDMA)
         (
             THIS_
-            _In_ eDeviceType deviceType,
-            _In_ UINT32 byteCount
+            _In_ eDeviceType deviceType
         ) PURE;
     STDMETHOD_(NTSTATUS, StopDMA)
         (

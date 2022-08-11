@@ -132,7 +132,7 @@ struct catpt_stream* CCsAudioCatptSSTHW::catpt_stream_find(UINT8 stream_hw_id)
 	return NULL;
 }
 
-NTSTATUS CCsAudioCatptSSTHW::acp3x_program_dma(eDeviceType deviceType, PMDL mdl, IPortWaveRTStream* stream) {
+NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byteCount, PMDL mdl, IPortWaveRTStream* stream) {
 #if USESSTHW
 	NTSTATUS status;
 
@@ -194,7 +194,7 @@ NTSTATUS CCsAudioCatptSSTHW::acp3x_program_dma(eDeviceType deviceType, PMDL mdl,
 			RtlZeroMemory(&rinfo, sizeof(rinfo));
 			rinfo.page_table_addr = pageTableAddr.LowPart; //TODO: figure out page table addr
 			rinfo.num_pages = pageCount;
-			rinfo.size = pageCount * PAGE_SIZE;
+			rinfo.size = byteCount;
 			rinfo.offset = 0;
 			rinfo.ring_first_page_pfn = (firstPage.LowPart >> 12);
 

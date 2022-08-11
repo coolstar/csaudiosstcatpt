@@ -1665,13 +1665,13 @@ exit:
 
 #pragma code_seg("PAGE")
 NTSTATUS
-CMiniportWaveRT::AcquireDMA(_In_ PCMiniportWaveRTStream _Stream) {
-    return m_pAdapterCommon->PrepareDMA(m_DeviceType, _Stream->m_pMDL, _Stream->m_pPortStream);
+CMiniportWaveRT::AcquireDMA(_In_ PCMiniportWaveRTStream _Stream, UINT32 byteCount) {
+    return m_pAdapterCommon->PrepareDMA(m_DeviceType, byteCount, _Stream->m_pMDL, _Stream->m_pPortStream);
 }
 
 NTSTATUS
-CMiniportWaveRT::StartDMA(UINT32 byteCount) {
-    return m_pAdapterCommon->StartDMA(m_DeviceType, byteCount);
+CMiniportWaveRT::StartDMA() {
+    return m_pAdapterCommon->StartDMA(m_DeviceType);
 }
 
 NTSTATUS

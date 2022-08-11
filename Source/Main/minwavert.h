@@ -90,12 +90,11 @@ public:
     );
 
     NTSTATUS AcquireDMA(
-        _In_ PCMiniportWaveRTStream _Stream
-    );
-
-    NTSTATUS StartDMA(
+        _In_ PCMiniportWaveRTStream _Stream,
         UINT32 byteCount
     );
+
+    NTSTATUS StartDMA();
 
     NTSTATUS StopDMA();
 

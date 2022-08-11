@@ -421,12 +421,12 @@ NTSTATUS CMiniportWaveRTStream::SetState
 
         case KSSTATE_RUN:
             // Start DMA
-            ntStatus = m_pMiniport->AcquireDMA(this);
+            ntStatus = m_pMiniport->AcquireDMA(this, m_ulDmaBufferSize);
             if (!NT_SUCCESS(ntStatus)) {
                 return ntStatus;
             }
 
-            m_pMiniport->StartDMA(m_ulDmaBufferSize);
+            m_pMiniport->StartDMA();
             if (!NT_SUCCESS(ntStatus)) {
                 return ntStatus;
             }

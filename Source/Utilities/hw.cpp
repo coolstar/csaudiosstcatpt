@@ -364,40 +364,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_deinit() {
 #endif
 }
 
-NTSTATUS CCsAudioCatptSSTHW::acp3x_hw_params(eDeviceType deviceType) {
-#if USEACPHW
-    UINT32 xfer_resolution = 0x02; //s16le
-
-    UINT32 reg_val;
-    switch (deviceType) {
-    case eSpeakerDevice:
-        reg_val = mmACP_BTTDM_ITER;
-        break;
-    case eHeadphoneDevice:
-        reg_val = mmACP_I2STDM_ITER;
-        break;
-    case eMicArrayDevice1:
-        reg_val = mmACP_BTTDM_IRER;
-        break;
-    case eMicJackDevice:
-        reg_val = mmACP_I2STDM_IRER;
-        break;
-    default:
-        DPF(D_ERROR, "Unknown device type");
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    UINT32 val = rv_read32(reg_val);
-    val &= ACP3x_ITER_IRER_SAMP_LEN_MASK;
-    val = val | (xfer_resolution << 3);
-    rv_write32(reg_val, val);
-#else
-    UNREFERENCED_PARAMETER(deviceType);
-#endif
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS CCsAudioCatptSSTHW::acp3x_play(eDeviceType deviceType, UINT32 byteCount) {
+NTSTATUS CCsAudioCatptSSTHW::sst_play(eDeviceType deviceType) {
 #if USESSTHW
     UINT8 stream_id;
     UINT32 link_reg;
@@ -448,7 +415,7 @@ NTSTATUS CCsAudioCatptSSTHW::acp3x_play(eDeviceType deviceType, UINT32 byteCount
 #endif
 }
 
-NTSTATUS CCsAudioCatptSSTHW::acp3x_stop(eDeviceType deviceType) {
+NTSTATUS CCsAudioCatptSSTHW::sst_stop(eDeviceType deviceType) {
 #if USESSTHW
     UINT32 link_reg;
     NTSTATUS status;
