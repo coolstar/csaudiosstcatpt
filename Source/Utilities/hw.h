@@ -104,6 +104,12 @@ struct catpt_spec {
 };
 
 struct catpt_stream {
+    struct catpt_stream_template* templ;
+    struct catpt_stream_info info;
+    PRESOURCE persistent;
+
+    PVOID pageTable;
+
     BOOL allocated;
     BOOL prepared;
 };
@@ -214,12 +220,31 @@ private:
     NTSTATUS ipc_wait_completion(int timeout);
     void dsp_send_tx(const struct catpt_ipc_msg* tx);
     void dsp_copy_rx(UINT32 header);
+    void dsp_notify_stream(union catpt_notify_msg msg);
     void dsp_process_response(UINT32 header);
     //IPC methods
 
     //PCM private methods
     NTSTATUS catpt_arm_stream_templates();
-   
+    struct catpt_stream* catpt_stream_find(UINT8 stream_hw_id);
+    NTSTATUS set_dsp_vol(UINT8 stream_id, LONG* ctlvol);
+    void stream_update_position(struct catpt_stream* stream, struct catpt_notify_position* pos);
+
+    //messages private methods
+    NTSTATUS ipc_alloc_stream(enum catpt_path_id path_id, enum catpt_stream_type type,
+        struct catpt_audio_format* afmt, struct catpt_ring_info* rinfo, UINT8 num_modules,
+        struct catpt_module_entry* modules, PRESOURCE persistent, PRESOURCE scratch, struct catpt_stream_info* sinfo);
+    NTSTATUS ipc_free_stream(UINT8 stream_hw_id);
+    NTSTATUS ipc_set_device_format(struct catpt_ssp_device_format* devfmt);
+    NTSTATUS ipc_set_volume(UINT8 stream_hw_id,
+        UINT32 channel, UINT32 volume,
+        UINT32 curve_duration,
+        enum catpt_audio_curve_type curve_type);
+    NTSTATUS ipc_set_write_pos(UINT8 stream_hw_id,
+        UINT32 pos, bool eob, bool ll);
+    NTSTATUS ipc_reset_stream(UINT8 stream_hw_id);
+    NTSTATUS ipc_pause_stream(UINT8 stream_hw_id);
+    NTSTATUS ipc_resume_stream(UINT8 stream_hw_id);
 public:
     void dsp_irq_thread();
     NTSTATUS dsp_irq_handler();

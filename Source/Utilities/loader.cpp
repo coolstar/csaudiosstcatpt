@@ -131,7 +131,6 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_module(PHYSICAL_ADDRESS paddr, struct ca
 
 		blk = (struct catpt_fw_block_hdr*)((UINT8*)mod + offset);
 
-		//TODO: catpt load block
 		PHYSICAL_ADDRESS blockPaddr;
 		blockPaddr.QuadPart = paddr.QuadPart + offset;
 		status = catpt_load_block(blockPaddr, blk, true);

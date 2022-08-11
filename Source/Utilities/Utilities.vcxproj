@@ -283,6 +283,7 @@
     <ClCompile Include="ipc.cpp" />
     <ClCompile Include="kshelper.cpp" />
     <ClCompile Include="loader.cpp" />
+    <ClCompile Include="messages.cpp" />
     <ClCompile Include="pcm.cpp" />
     <ClCompile Include="resource.cpp" />
   </ItemGroup>

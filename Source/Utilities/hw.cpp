@@ -297,6 +297,8 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
                 DbgPrint("Failed to get mixer info!\n");
                 return status;
             }
+
+            DbgPrint("Mixer hw id: %d\n", this->mixer.mixer_hw_id);
         }
 
         status = catpt_arm_stream_templates();
@@ -307,6 +309,31 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
 
         /* update dram pg for scratch and restricted regions */
         dsp_update_srampge(&this->dram, this->spec->dram_mask);
+
+        {
+            //Set device fmt
+            struct catpt_ssp_device_format devfmt;
+            devfmt.channels = 2;
+            devfmt.iface = CATPT_SSP_IFACE_0;
+            devfmt.mclk = CATPT_MCLK_FREQ_24_MHZ;
+            devfmt.mode = CATPT_SSP_MODE_I2S_PROVIDER;
+            devfmt.clock_divider = 9;
+            status = ipc_set_device_format(&devfmt);
+            if (!NT_SUCCESS(status)) {
+                DbgPrint("set device fmt failed\n");
+                return status;
+            }
+        }
+
+        {
+            //Set mixer volume
+            LONG volMax[CATPT_CHANNELS_MAX] = {0x1e, 0x1e, 0x1e, 0x1e};
+            status = set_dsp_vol(this->mixer.mixer_hw_id, volMax);
+            if (!NT_SUCCESS(status)) {
+                DbgPrint("set mixer vol failed\n");
+                return status;
+            }
+        }
     }
 
     return status;
@@ -370,259 +397,133 @@ NTSTATUS CCsAudioCatptSSTHW::acp3x_hw_params(eDeviceType deviceType) {
     return STATUS_SUCCESS;
 }
 
-NTSTATUS CCsAudioCatptSSTHW::acp3x_program_dma(eDeviceType deviceType, PMDL mdl, IPortWaveRTStream *stream) {
-#if USEACPHW
-    int pageCount = stream->GetPhysicalPagesCount(mdl);
-    if (pageCount < 1) {
-        return STATUS_NO_MEMORY;
-    }
-
-    UINT32 val;
-    UINT32 reg_dma_size;
-    UINT32 acp_fifo_addr;
-    UINT32 reg_fifo_addr;
-    UINT32 reg_fifo_size;
-
-    UINT32 ring_buf_addr;
-    UINT32 window_start_addr;
-
-    switch (deviceType) {
-    case eSpeakerDevice:
-        val = ACP_SRAM_BT_PB_PTE_OFFSET;
-        reg_dma_size = mmACP_BT_TX_DMA_SIZE;
-        acp_fifo_addr = ACP_SRAM_PTE_OFFSET +
-            BT_PB_FIFO_ADDR_OFFSET;
-        reg_fifo_addr = mmACP_BT_TX_FIFOADDR;
-        reg_fifo_size = mmACP_BT_TX_FIFOSIZE;
-
-        ring_buf_addr = mmACP_BT_TX_RINGBUFADDR;
-        window_start_addr = I2S_BT_TX_MEM_WINDOW_START;
-        break;
-    case eHeadphoneDevice:
-        val = ACP_SRAM_SP_PB_PTE_OFFSET;
-        reg_dma_size = mmACP_I2S_TX_DMA_SIZE;
-        acp_fifo_addr = ACP_SRAM_PTE_OFFSET +
-            SP_PB_FIFO_ADDR_OFFSET;
-        reg_fifo_addr = mmACP_I2S_TX_FIFOADDR;
-        reg_fifo_size = mmACP_I2S_TX_FIFOSIZE;
-
-        ring_buf_addr = mmACP_I2S_TX_RINGBUFADDR;
-        window_start_addr = I2S_SP_TX_MEM_WINDOW_START;
-        break;
-    case eMicArrayDevice1:
-        val = ACP_SRAM_BT_CP_PTE_OFFSET;
-        reg_dma_size = mmACP_BT_RX_DMA_SIZE;
-        acp_fifo_addr = ACP_SRAM_PTE_OFFSET +
-            BT_CAPT_FIFO_ADDR_OFFSET;
-        reg_fifo_addr = mmACP_BT_RX_FIFOADDR;
-        reg_fifo_size = mmACP_BT_RX_FIFOSIZE;
-
-        ring_buf_addr = mmACP_BT_RX_RINGBUFADDR;
-        window_start_addr = I2S_BT_RX_MEM_WINDOW_START;
-        break;
-    case eMicJackDevice:
-        val = ACP_SRAM_SP_CP_PTE_OFFSET;
-        reg_dma_size = mmACP_I2S_RX_DMA_SIZE;
-        acp_fifo_addr = ACP_SRAM_PTE_OFFSET +
-            SP_CAPT_FIFO_ADDR_OFFSET;
-        reg_fifo_addr = mmACP_I2S_RX_FIFOADDR;
-        reg_fifo_size = mmACP_I2S_RX_FIFOSIZE;
-
-        ring_buf_addr = mmACP_I2S_RX_RINGBUFADDR;
-        window_start_addr = I2S_SP_RX_MEM_WINDOW_START;
-        break;
-    default:
-        DPF(D_ERROR, "Unknown device type");
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    /* Group Enable */
-    rv_write32(mmACPAXI2AXI_ATU_BASE_ADDR_GRP_1, ACP_SRAM_PTE_OFFSET | BIT(31));
-    rv_write32(mmACPAXI2AXI_ATU_PAGE_SIZE_GRP_1, PAGE_SIZE_4K_ENABLE);
-
-    for (int i = 0; i < pageCount; i++) {
-        PHYSICAL_ADDRESS address = stream->GetPhysicalPageAddress(mdl, i);
-        UINT32 low = address.LowPart;
-        UINT32 high = address.HighPart;
-
-        rv_write32(mmACP_SCRATCH_REG_0 + val, low);
-        high |= BIT(31);
-        rv_write32(mmACP_SCRATCH_REG_0 + val + 4, high);
-
-        val += 8;
-    }
-
-    rv_write32(ring_buf_addr, window_start_addr);
-    rv_write32(reg_dma_size, DMA_SIZE);
-    rv_write32(reg_fifo_addr, acp_fifo_addr);
-    rv_write32(reg_fifo_size, FIFO_SIZE);
-    rv_write32(mmACP_EXTERNAL_INTR_CNTL, BIT(I2S_RX_THRESHOLD) | BIT(BT_RX_THRESHOLD)
-        | BIT(I2S_TX_THRESHOLD) | BIT(BT_TX_THRESHOLD));
-#else
-    UNREFERENCED_PARAMETER(deviceType);
-    UNREFERENCED_PARAMETER(stream);
-    UNREFERENCED_PARAMETER(mdl);
-#endif
-    return STATUS_SUCCESS;
-}
-
 NTSTATUS CCsAudioCatptSSTHW::acp3x_play(eDeviceType deviceType, UINT32 byteCount) {
-#if USEACPHW
-    UINT32 water_val;
-    UINT32 reg_val;
-    UINT32 ier_val;
-    UINT32 buf_reg;
+#if USESSTHW
+    UINT8 stream_id;
+    UINT32 link_reg;
+    NTSTATUS status;
+
+    catpt_stream* stream;
 
     switch (deviceType) {
     case eSpeakerDevice:
-        water_val =
-            mmACP_BT_TX_INTR_WATERMARK_SIZE;
-        reg_val = mmACP_BTTDM_ITER;
-        ier_val = mmACP_BTTDM_IER;
-        buf_reg = mmACP_BT_TX_RINGBUFSIZE;
-
-        bt_running_streams++;
-        break;
-    case eHeadphoneDevice:
-        water_val =
-            mmACP_I2S_TX_INTR_WATERMARK_SIZE;
-        reg_val = mmACP_I2STDM_ITER;
-        ier_val = mmACP_I2STDM_IER;
-        buf_reg = mmACP_I2S_TX_RINGBUFSIZE;
-
-        sp_running_streams++;
-        break;
-    case eMicArrayDevice1:
-        water_val =
-            mmACP_BT_RX_INTR_WATERMARK_SIZE;
-        reg_val = mmACP_BTTDM_IRER;
-        ier_val = mmACP_BTTDM_IER;
-        buf_reg = mmACP_BT_RX_RINGBUFSIZE;
-
-        bt_running_streams++;
+        stream = &this->outStream;
         break;
     case eMicJackDevice:
-        water_val =
-            mmACP_I2S_RX_INTR_WATERMARK_SIZE;
-        reg_val = mmACP_I2STDM_IRER;
-        ier_val = mmACP_I2STDM_IER;
-        buf_reg = mmACP_I2S_RX_RINGBUFSIZE;
-
-        sp_running_streams++;
+        stream = &this->inStream;
         break;
     default:
         DPF(D_ERROR, "Unknown device type");
         return STATUS_INVALID_PARAMETER;
     }
 
-    rv_write32(water_val, 160);
-    rv_write32(buf_reg, byteCount);
+    if (!stream->allocated) {
+        return STATUS_INVALID_PARAMETER;
+    }
+    stream_id = stream->info.stream_hw_id;
 
-    UINT32 val = rv_read32(reg_val);
-    val = val | BIT(0);
-    rv_write32(reg_val, val);
-    rv_write32(ier_val, 1);
+    status = ipc_reset_stream(stream_id);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+    status = ipc_pause_stream(stream_id);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
 
-    rv_write32(mmACP_EXTERNAL_INTR_ENB, 1); //Enable interrupts
+    status = ipc_set_write_pos(stream_id, 0, false, false);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    stream->prepared = true;
+    dsp_update_lpclock();
+
+    status = ipc_resume_stream(stream_id);
+    return status;
+
 #else
     UNREFERENCED_PARAMETER(deviceType);
-    UNREFERENCED_PARAMETER(byteCount);
+    return STATUS_SUCCESS;
 #endif
-return STATUS_SUCCESS;
 }
 
 NTSTATUS CCsAudioCatptSSTHW::acp3x_stop(eDeviceType deviceType) {
-#if USEACPHW
-    UINT32 reg_val;
-    UINT32 ier_val;
+#if USESSTHW
+    UINT32 link_reg;
+    NTSTATUS status;
 
-    INT running_streams = 0;
+    catpt_stream* stream;
 
     switch (deviceType) {
     case eSpeakerDevice:
-        reg_val = mmACP_BTTDM_ITER;
-        ier_val = mmACP_BTTDM_IER;
-
-        bt_running_streams++;
-        running_streams = bt_running_streams;
-        break;
-    case eHeadphoneDevice:
-        reg_val = mmACP_I2STDM_ITER;
-        ier_val = mmACP_I2STDM_IER;
-
-        sp_running_streams++;
-        running_streams = sp_running_streams;
-        break;
-    case eMicArrayDevice1:
-        reg_val = mmACP_BTTDM_IRER;
-        ier_val = mmACP_BTTDM_IER;
-
-        bt_running_streams++;
-        running_streams = bt_running_streams;
+        stream = &this->outStream;
         break;
     case eMicJackDevice:
-        reg_val = mmACP_I2STDM_IRER;
-        ier_val = mmACP_I2STDM_IER;
-
-        sp_running_streams++;
-        running_streams = sp_running_streams;
+        stream = &this->inStream;
         break;
     default:
         DPF(D_ERROR, "Unknown device type");
         return STATUS_INVALID_PARAMETER;
     }
 
-    UINT32 val = rv_read32(reg_val);
-    val = val & ~BIT(0);
-    rv_write32(reg_val, val);
-    if (running_streams < 1)
-        rv_write32(ier_val, 0);
+    if (!stream->allocated) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    UINT8 stream_id = stream->info.stream_hw_id;
+    status = ipc_pause_stream(stream_id);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    stream->prepared = false;
+    dsp_update_lpclock();
+
+    status = ipc_free_stream(stream_id);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    MmFreeContiguousMemory(stream->pageTable);
+    stream->pageTable = NULL;
+
+    stream->allocated = false;
+    release_resource(stream->persistent);
+    stream->persistent = NULL;
+
+    dsp_update_srampge(&this->dram, this->spec->dram_mask);
+    return status;
+    
 #else
     UNREFERENCED_PARAMETER(deviceType);
-#endif
     return STATUS_SUCCESS;
+#endif
 }
 
 NTSTATUS CCsAudioCatptSSTHW::acp3x_current_position(eDeviceType deviceType, UINT32 *linkPos, UINT64 *linearPos) {
-#if USEACPHW
-    UINT32 link_reg;
-    UINT32 linearHigh_reg;
-    UINT32 linearLow_reg;
+#if USESSTHW
+    UINT32 regaddr;
 
     switch (deviceType) {
     case eSpeakerDevice:
-        link_reg = mmACP_BT_TX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_BT_TX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_BT_TX_LINEARPOSITIONCNTR_LOW;
-        break;
-    case eHeadphoneDevice:
-        link_reg = mmACP_I2S_TX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_I2S_TX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_I2S_TX_LINEARPOSITIONCNTR_LOW;
-        break;
-    case eMicArrayDevice1:
-        link_reg = mmACP_BT_RX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_BT_RX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_BT_RX_LINEARPOSITIONCNTR_LOW;
+        regaddr = this->outStream.info.read_pos_regaddr;
         break;
     case eMicJackDevice:
-        link_reg = mmACP_I2S_RX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_I2S_RX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_I2S_RX_LINEARPOSITIONCNTR_LOW;
+        regaddr = this->inStream.info.read_pos_regaddr;
         break;
     default:
         DPF(D_ERROR, "Unknown device type");
         return STATUS_INVALID_PARAMETER;
     }
 
-    UINT32 linkCtr = rv_read32(link_reg);
-    UINT32 linearHigh = rv_read32(linearHigh_reg);
-    UINT32 linearLow = rv_read32(linearLow_reg);
+    UINT32 pos;
+    memcpy(&pos, this->lpe_ba + regaddr, sizeof(pos));
 
     if (linkPos)
-        *linkPos = linkCtr;
+        *linkPos = pos;
     if (linearPos)
-        *linearPos = ((UINT64)linearHigh << 32) | (UINT64)linearLow;
+        *linearPos = pos;
 #else
     UNREFERENCED_PARAMETER(deviceType);
     UNREFERENCED_PARAMETER(linkPos);
@@ -632,46 +533,31 @@ NTSTATUS CCsAudioCatptSSTHW::acp3x_current_position(eDeviceType deviceType, UINT
 }
 
 NTSTATUS CCsAudioCatptSSTHW::acp3x_set_position(eDeviceType deviceType, UINT32 linkPos, UINT64 linearPos) {
-#if USEACPHW
+#if USESSTHW
+    UINT8 stream_id;
     UINT32 link_reg;
-    UINT32 linearHigh_reg;
-    UINT32 linearLow_reg;
+    NTSTATUS status;
 
     switch (deviceType) {
     case eSpeakerDevice:
-        link_reg = mmACP_BT_TX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_BT_TX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_BT_TX_LINEARPOSITIONCNTR_LOW;
-        break;
-    case eHeadphoneDevice:
-        link_reg = mmACP_I2S_TX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_I2S_TX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_I2S_TX_LINEARPOSITIONCNTR_LOW;
-        break;
-    case eMicArrayDevice1:
-        link_reg = mmACP_BT_RX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_BT_RX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_BT_RX_LINEARPOSITIONCNTR_LOW;
+        stream_id = this->outStream.info.stream_hw_id;
         break;
     case eMicJackDevice:
-        link_reg = mmACP_I2S_RX_LINKPOSITIONCNTR;
-        linearHigh_reg = mmACP_I2S_RX_LINEARPOSITIONCNTR_HIGH;
-        linearLow_reg = mmACP_I2S_RX_LINEARPOSITIONCNTR_LOW;
+        stream_id = this->inStream.info.stream_hw_id;
         break;
     default:
         DPF(D_ERROR, "Unknown device type");
         return STATUS_INVALID_PARAMETER;
     }
 
-    rv_write32(link_reg, linkPos);
-    rv_write32(linearHigh_reg, linearPos >> 32);
-    rv_write32(linearLow_reg, linearPos & 0xffffffff);
+    status = ipc_set_write_pos(stream_id, linkPos, false, false);
+    return status;
 #else
     UNREFERENCED_PARAMETER(deviceType);
     UNREFERENCED_PARAMETER(linkPos);
     UNREFERENCED_PARAMETER(linearPos);
-#endif
     return STATUS_SUCCESS;
+#endif
 }
 
 //=============================================================================

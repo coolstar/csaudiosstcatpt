@@ -105,7 +105,6 @@ void CCsAudioCatptSSTHW::dsp_set_srampge(PRESOURCE sram,
 {
 	unsigned long oldVal;
 	UINT32 off = sram->start;
-	UINT32 b = __ffs(mask);
 
 	oldVal = catpt_readl_pci(this, VDRTCTL0) & mask;
 	DbgPrint("SRAMPGE [0x%08lx] 0x%08lx -> 0x%08lx",
@@ -122,13 +121,17 @@ void CCsAudioCatptSSTHW::dsp_set_srampge(PRESOURCE sram,
 	 * Dummy read as the very first access after block enable
 	 * to prevent byte loss in future operations.
 	 */
-	for_each_clear_bit_from(b, &newVal, fls(mask)) {
+	for (int bit = __ffs(mask); bit <= fls(mask); bit++) {
+		if ((newVal >> bit) & 1) {
+			continue;
+		}
+
 		UINT8 buf[4];
 
 		/* newly enabled: new bit=0 while old bit=1 */
-		if ((oldVal >> b) & 1) {
+		if ((oldVal >> bit) & 1) {
 			DbgPrint("sanitize block %ld: off 0x%08x\n",
-				b - __ffs(mask), off);
+				bit - __ffs(mask), off);
 			memcpy(buf, this->lpe_ba + off, sizeof(buf));
 		}
 		off += CATPT_MEMBLOCK_SIZE;

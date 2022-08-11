@@ -56,7 +56,6 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_send_msg(struct catpt_ipc_msg request,
 	int ret = ipc_rx.rsp.status;
 	if (reply) {
 		reply->header = ipc_rx.header;
-
 		if (!ret && reply->data) {
 			memcpy(reply->data, ipc_rx.data, reply->size);
 		}
@@ -109,7 +108,21 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_wait_completion(int timeout) {
 void CCsAudioCatptSSTHW::dsp_send_tx(const struct catpt_ipc_msg* tx) {
 	UINT32 header = tx->header | CATPT_IPCC_BUSY;
 
-	RtlCopyMemory(catpt_outbox_addr(this), tx->data, tx->size);
+	RtlMoveMemory(catpt_outbox_addr(this), tx->data, tx->size);
+
+	UINT8* outbox = catpt_outbox_addr(this);
+	for (int i = 0; i < tx->size; i++) {
+		if (outbox[i] != ((UINT8*)tx->data)[i]) {
+			DbgPrint("Mismatch at offset %d\n", i);
+
+			outbox[i] = ((UINT8*)tx->data)[i];
+			if (outbox[i] != ((UINT8*)tx->data)[i]) {
+				DbgPrint("Still mismatch at offset %d\n", i);
+			}
+		}
+	}
+	DbgPrint("Sent %d bytes to DSP\n", tx->size);
+
 	catpt_writel_shim(this, IPCC, header);
 }
 
@@ -119,7 +132,39 @@ void CCsAudioCatptSSTHW::dsp_copy_rx(UINT32 header)
 	if (this->ipc_rx.rsp.status != CATPT_REPLY_SUCCESS)
 		return;
 
-	RtlCopyMemory(this->ipc_rx.data, catpt_outbox_addr(this), this->ipc_rx.size);
+	RtlMoveMemory(this->ipc_rx.data, catpt_outbox_addr(this), this->ipc_rx.size);
+}
+
+void CCsAudioCatptSSTHW::dsp_notify_stream(union catpt_notify_msg msg) {
+	catpt_stream *stream = catpt_stream_find(msg.stream_hw_id);
+	if (!stream) {
+		DbgPrint("notify %d for non-existent stream %d\n", msg.notify_reason, msg.stream_hw_id);
+		return;
+	}
+
+	struct catpt_notify_position pos;
+	struct catpt_notify_glitch glitch;
+
+	switch (msg.notify_reason) {
+	case CATPT_NOTIFY_POSITION_CHANGED:
+		RtlMoveMemory(&pos, catpt_inbox_addr(this), sizeof(pos));
+		DbgPrint("Position Changed! 0x%x\n", pos.stream_position);
+		stream_update_position(stream, &pos);
+		break;
+
+	case CATPT_NOTIFY_GLITCH_OCCURRED:
+		RtlMoveMemory(&glitch, catpt_inbox_addr(this), sizeof(glitch));
+
+		DbgPrint("glitch %d at pos: 0x%08llx, wp: 0x%08x\n",
+			glitch.type, glitch.presentation_pos,
+			glitch.write_pos);
+		break;
+
+	default:
+		DbgPrint("unknown notification: %d received\n",
+			msg.notify_reason);
+		break;
+	}
 }
 
 void CCsAudioCatptSSTHW::dsp_process_response(UINT32 header)
@@ -149,13 +194,9 @@ void CCsAudioCatptSSTHW::dsp_process_response(UINT32 header)
 	case CATPT_GLB_STREAM_MESSAGE:
 		switch (msg.stream_msg_type) {
 		case CATPT_STRM_NOTIFICATION:
-			DbgPrint("DSP notify stream\n");
-			//TODO: dsp_notify_stream
-			//dsp_notify_stream(msg);
+			dsp_notify_stream(msg);
 			break;
 		default:
-			//TODO: dsp_copy_rx
-			DbgPrint("DSP copy RX\n");
 			dsp_copy_rx(header);
 			/* signal completion of delayed reply */
 			this->ipc_busy = FALSE;
