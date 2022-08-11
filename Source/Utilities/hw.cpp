@@ -111,10 +111,10 @@ Return Value:
         return;
     }
 
-    this->m_WorkQueueItem = (PWORK_QUEUE_ITEM)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(WORK_QUEUE_ITEM), CSAUDIOCATPTSST_POOLTAG);
+    /*this->m_WorkQueueItem = (PWORK_QUEUE_ITEM)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(WORK_QUEUE_ITEM), CSAUDIOCATPTSST_POOLTAG);
     if (this->m_WorkQueueItem) {
         ExInitializeWorkItem(this->m_WorkQueueItem, WorkerThreadFunc, this);
-    }
+    }*/
 
     this->fw_ready = false;
     ExInitializeFastMutex(&clk_mutex);
@@ -165,10 +165,10 @@ CCsAudioCatptSSTHW::~CCsAudioCatptSSTHW() {
         this->m_InterruptSync->Release();
         this->m_InterruptSync = NULL;
     }
-    if (this->m_WorkQueueItem) {
+    /*if (this->m_WorkQueueItem) {
         ExFreePoolWithTag(this->m_WorkQueueItem, CSAUDIOCATPTSST_POOLTAG);
         this->m_WorkQueueItem = NULL;
-    }
+    }*/
 
     if (m_BAR0.Base.Base)
         MmUnmapIoSpace(m_BAR0.Base.Base, m_BAR0.Len);
@@ -212,51 +212,8 @@ NTSTATUS CCsAudioCatptSSTHW::readl_poll_timeout(PVOID addr, UINT32 val, UINT32 m
 }
 #endif
 
-#if USEACPHW
-UINT32 CCsAudioAcp3xHW::rv_read32(UINT32 reg)
-{
-    return read32(m_BAR0.Base.baseptr + reg - ACP3x_PHY_BASE_ADDRESS);
-}
-
-void CCsAudioAcp3xHW::rv_write32(UINT32 reg, UINT32 val)
-{
-    write32(m_BAR0.Base.baseptr + reg - ACP3x_PHY_BASE_ADDRESS, val);
-}
-
-NTSTATUS CCsAudioAcp3xHW::acp3x_reset() {
-    UINT32 val;
-    int timeout;
-    rv_write32(mmACP_SOFT_RESET, 1);
-
-    timeout = 0;
-    while (++timeout < 500) {
-        val = rv_read32(mmACP_SOFT_RESET);
-        if (val & ACP3x_SOFT_RESET__SoftResetAudDone_MASK)
-            break;
-    }
-    rv_write32(mmACP_SOFT_RESET, 0);
-    timeout = 0;
-    while (++timeout < 500) {
-        val = rv_read32(mmACP_SOFT_RESET);
-        if (!val)
-            return STATUS_SUCCESS;
-    }
-    return STATUS_IO_TIMEOUT;
-}
-#endif
-
 NTSTATUS CCsAudioCatptSSTHW::sst_init() {
 #if USESSTHW
-    /*bt_running_streams = 0;
-    sp_running_streams = 0;
-
-    NTSTATUS status = acp3x_power_on();
-    if (!NT_SUCCESS(status)) {
-        return status;
-    }
-    status = acp3x_reset();
-    return status;*/
-
     NTSTATUS status = dsp_power_up();
     if (!NT_SUCCESS(status)) {
         return status;
@@ -398,10 +355,10 @@ NTSTATUS CCsAudioCatptSSTHW::sst_play(eDeviceType deviceType) {
         return status;
     }
 
-    status = ipc_set_write_pos(stream_id, 0, false, false);
+    /*status = ipc_set_write_pos(stream_id, 0, false, false);
     if (!NT_SUCCESS(status)) {
         return status;
-    }
+    }*/
 
     stream->prepared = true;
     dsp_update_lpclock();
@@ -471,18 +428,25 @@ NTSTATUS CCsAudioCatptSSTHW::sst_stop(eDeviceType deviceType) {
 NTSTATUS CCsAudioCatptSSTHW::acp3x_current_position(eDeviceType deviceType, UINT32 *linkPos, UINT64 *linearPos) {
 #if USESSTHW
     UINT32 regaddr;
+    catpt_stream* stream;
 
     switch (deviceType) {
     case eSpeakerDevice:
-        regaddr = this->outStream.info.read_pos_regaddr;
+        stream = &this->outStream;
         break;
     case eMicJackDevice:
-        regaddr = this->inStream.info.read_pos_regaddr;
+        stream = &this->inStream;
         break;
     default:
         DPF(D_ERROR, "Unknown device type");
         return STATUS_INVALID_PARAMETER;
     }
+
+    if (!stream->allocated) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    regaddr = stream->info.read_pos_regaddr;
 
     UINT32 pos;
     memcpy(&pos, this->lpe_ba + regaddr, sizeof(pos));
@@ -497,34 +461,6 @@ NTSTATUS CCsAudioCatptSSTHW::acp3x_current_position(eDeviceType deviceType, UINT
     UNREFERENCED_PARAMETER(linearPos);
 #endif
     return STATUS_SUCCESS;
-}
-
-NTSTATUS CCsAudioCatptSSTHW::acp3x_set_position(eDeviceType deviceType, UINT32 linkPos, UINT64 linearPos) {
-#if USESSTHW
-    UINT8 stream_id;
-    UINT32 link_reg;
-    NTSTATUS status;
-
-    switch (deviceType) {
-    case eSpeakerDevice:
-        stream_id = this->outStream.info.stream_hw_id;
-        break;
-    case eMicJackDevice:
-        stream_id = this->inStream.info.stream_hw_id;
-        break;
-    default:
-        DPF(D_ERROR, "Unknown device type");
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    status = ipc_set_write_pos(stream_id, linkPos, false, false);
-    return status;
-#else
-    UNREFERENCED_PARAMETER(deviceType);
-    UNREFERENCED_PARAMETER(linkPos);
-    UNREFERENCED_PARAMETER(linearPos);
-    return STATUS_SUCCESS;
-#endif
 }
 
 //=============================================================================

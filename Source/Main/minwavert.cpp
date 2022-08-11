@@ -1684,9 +1684,4 @@ CMiniportWaveRT::CurrentPosition(UINT32* linkPos, UINT64* linearPos) {
     return m_pAdapterCommon->CurrentPosition(m_DeviceType, linkPos, linearPos);
 }
 
-NTSTATUS
-CMiniportWaveRT::UpdatePosition(UINT32 linkPos, UINT64 linearPos) {
-    return m_pAdapterCommon->UpdatePosition(m_DeviceType, linkPos, linearPos);
-}
-
 #pragma code_seg()

@@ -147,9 +147,6 @@ void CCsAudioCatptSSTHW::dsp_notify_stream(union catpt_notify_msg msg) {
 
 	switch (msg.notify_reason) {
 	case CATPT_NOTIFY_POSITION_CHANGED:
-		RtlMoveMemory(&pos, catpt_inbox_addr(this), sizeof(pos));
-		DbgPrint("Position Changed! 0x%x\n", pos.stream_position);
-		stream_update_position(stream, &pos);
 		break;
 
 	case CATPT_NOTIFY_GLITCH_OCCURRED:
@@ -231,7 +228,7 @@ void CCsAudioCatptSSTHW::dsp_irq_thread() {
 }
 
 NTSTATUS CCsAudioCatptSSTHW::dsp_irq_handler() {
-	NTSTATUS status;
+	NTSTATUS status = STATUS_INVALID_PARAMETER;
 	UINT32 isc, ipcc;
 	isc = catpt_readl_shim(this, ISC);
 
@@ -256,9 +253,10 @@ NTSTATUS CCsAudioCatptSSTHW::dsp_irq_handler() {
 	if (isc & CATPT_ISC_IPCDB) {
 		/* mask dsp BUSY interrupt */
 		catpt_updatel_shim(this, IMC, CATPT_IMC_IPCDB, CATPT_IMC_IPCDB);
-		ExQueueWorkItem(this->m_WorkQueueItem, DelayedWorkQueue);
+		dsp_irq_thread();
+		//ExQueueWorkItem(this->m_WorkQueueItem, DelayedWorkQueue);
 		status = STATUS_SUCCESS;
 	}
 
-	return STATUS_INVALID_PARAMETER;
+	return status;
 }

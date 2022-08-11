@@ -301,13 +301,6 @@ DECLARE_INTERFACE_(IAdapterCommon, IUnknown)
             _Out_ UINT32 * linkPos,
             _Out_ UINT64 * linearPos
         ) PURE;
-    STDMETHOD_(NTSTATUS, UpdatePosition)
-        (
-            THIS_
-            _In_ eDeviceType deviceType,
-            _In_ UINT32 linkPos,
-            _In_ UINT64 linearPos
-        ) PURE;
 
     STDMETHOD_(BOOL,            bDevSpecificRead)
     (

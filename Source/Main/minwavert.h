@@ -99,7 +99,6 @@ public:
     NTSTATUS StopDMA();
 
     NTSTATUS CurrentPosition(UINT32* linkPos, UINT64* linearPos);
-    NTSTATUS UpdatePosition(UINT32 linkPos, UINT64 linearPos);
     
     NTSTATUS IsFormatSupported
     ( 

@@ -2,6 +2,7 @@
 #include "definitions.h"
 #include "hw.h"
 #include "messages.h"
+#include "resource.h"
 
 struct catpt_stream_template {
 	enum catpt_path_id path_id;
@@ -198,6 +199,8 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 			rinfo.offset = 0;
 			rinfo.ring_first_page_pfn = (firstPage.LowPart >> 12);
 
+			DbgPrint("Buffer Size: %d, Pages: %d\n", rinfo.size, rinfo.num_pages);
+
 			status = ipc_alloc_stream(
 				system_pb.path_id,
 				system_pb.type,
@@ -211,19 +214,31 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 
 			if (!NT_SUCCESS(status)) {
 				DbgPrint("Failed to alloc stream: 0x%x\n", status);
+
+				MmFreeContiguousMemory(this->outStream.pageTable);
+				this->outStream.pageTable = NULL;
+
+				release_resource(this->outStream.persistent);
+				this->outStream.persistent = NULL;
+				dsp_update_srampge(&this->dram, this->spec->dram_mask);
+
+				this->outStream.prepared = false;
+
 				return status;
 			}
 
 			this->outStream.templ = &system_pb;
+			this->outStream.bufSz = byteCount;
 			this->outStream.allocated = true;
 		}
 
 		LONG vol;
 		vol = LONG_MAX;
-		status = set_dsp_vol(this->outStream.info.stream_hw_id, &vol);
-		if (!NT_SUCCESS(status)) {
-			DbgPrint("Failed to set stream volume 0x%x\n", status);
-			return status;
+		NTSTATUS volStatus;
+		volStatus = set_dsp_vol(this->outStream.info.stream_hw_id, &vol);
+		if (!NT_SUCCESS(volStatus)) {
+			DbgPrint("Failed to set stream volume 0x%x\n", volStatus);
+			//Don't fail here
 		}
 		break;
 	case eMicJackDevice:
@@ -279,10 +294,4 @@ NTSTATUS CCsAudioCatptSSTHW::set_dsp_vol(UINT8 stream_id, LONG* ctlvol) {
 	}
 
 	return status;
-}
-
-void CCsAudioCatptSSTHW::stream_update_position(struct catpt_stream* stream, struct catpt_notify_position* pos) {
-	UINT32 dsppos = pos->stream_position;
-
-	DbgPrint("Stream Type: %d\n", stream->templ->type);
 }

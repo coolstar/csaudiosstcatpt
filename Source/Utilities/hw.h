@@ -109,6 +109,7 @@ struct catpt_stream {
     PRESOURCE persistent;
 
     PVOID pageTable;
+    UINT32 bufSz;
 
     BOOL allocated;
     BOOL prepared;
@@ -143,7 +144,7 @@ protected:
     PCI_BAR m_BAR1;
 
     PINTERRUPTSYNC m_InterruptSync;
-    PWORK_QUEUE_ITEM m_WorkQueueItem;
+    //PWORK_QUEUE_ITEM m_WorkQueueItem;
 
     RESOURCE dram;
     RESOURCE iram;
@@ -262,7 +263,6 @@ public:
     NTSTATUS sst_play(eDeviceType deviceType);
     NTSTATUS sst_stop(eDeviceType deviceType);
     NTSTATUS acp3x_current_position(eDeviceType deviceType, UINT32* linkPos, UINT64* linearPos);
-    NTSTATUS acp3x_set_position(eDeviceType deviceType, UINT32 linkPos, UINT64 linearPos);
     
     void                        MixerReset();
     BOOL                        bGetDevSpecific();
