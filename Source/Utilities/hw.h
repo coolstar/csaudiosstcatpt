@@ -144,7 +144,6 @@ protected:
     PCI_BAR m_BAR1;
 
     PINTERRUPTSYNC m_InterruptSync;
-    //PWORK_QUEUE_ITEM m_WorkQueueItem;
 
     RESOURCE dram;
     RESOURCE iram;
@@ -247,7 +246,6 @@ private:
     NTSTATUS ipc_pause_stream(UINT8 stream_hw_id);
     NTSTATUS ipc_resume_stream(UINT8 stream_hw_id);
 public:
-    void dsp_irq_thread();
     NTSTATUS dsp_irq_handler();
 #endif
 
@@ -262,6 +260,7 @@ public:
     NTSTATUS sst_program_dma(eDeviceType deviceType, UINT32 byteCount, PMDL mdl, IPortWaveRTStream* stream);
     NTSTATUS sst_play(eDeviceType deviceType);
     NTSTATUS sst_stop(eDeviceType deviceType);
+    void force_stop(catpt_stream* stream);
     NTSTATUS acp3x_current_position(eDeviceType deviceType, UINT32* linkPos, UINT64* linearPos);
     
     void                        MixerReset();

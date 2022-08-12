@@ -106,8 +106,6 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct cat
 	/* advance to data area */
 	pAddr.QuadPart += sizeof(*blk);
 
-	DbgPrint("memcpy to DSP address 0x%lx (from 0x%llx)\n", dst_addr, pAddr.QuadPart);
-
 	//TODO: dma_memcpy_todsp
 	status = this->dmac->transfer_dma(dst_addr, pAddr.LowPart, blk->size);
 
@@ -174,7 +172,6 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_firmware(PHYSICAL_ADDRESS paddr, struct 
 			return STATUS_INVALID_PARAMETER;
 		}
 
-		DbgPrint("Loaded module 0x%x\n", mod->module_id);
 		if (mod->module_id > CATPT_MODID_LAST)
 			return STATUS_INVALID_PARAMETER;
 

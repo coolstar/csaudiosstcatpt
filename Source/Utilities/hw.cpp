@@ -23,11 +23,6 @@ static NTSTATUS InterruptRoutine(PINTERRUPTSYNC InterruptSync,
     return that->dsp_irq_handler();
 }
 
-static VOID WorkerThreadFunc(PVOID Parameter) {
-    CCsAudioCatptSSTHW* that = (CCsAudioCatptSSTHW*)Parameter;
-    return that->dsp_irq_thread();
-}
-
 #if USESSTHW
 static struct catpt_spec wpt_desc = {
     .core_id = 0x02,
@@ -111,11 +106,6 @@ Return Value:
         return;
     }
 
-    /*this->m_WorkQueueItem = (PWORK_QUEUE_ITEM)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(WORK_QUEUE_ITEM), CSAUDIOCATPTSST_POOLTAG);
-    if (this->m_WorkQueueItem) {
-        ExInitializeWorkItem(this->m_WorkQueueItem, WorkerThreadFunc, this);
-    }*/
-
     this->fw_ready = false;
     ExInitializeFastMutex(&clk_mutex);
 
@@ -165,10 +155,6 @@ CCsAudioCatptSSTHW::~CCsAudioCatptSSTHW() {
         this->m_InterruptSync->Release();
         this->m_InterruptSync = NULL;
     }
-    /*if (this->m_WorkQueueItem) {
-        ExFreePoolWithTag(this->m_WorkQueueItem, CSAUDIOCATPTSST_POOLTAG);
-        this->m_WorkQueueItem = NULL;
-    }*/
 
     if (m_BAR0.Base.Base)
         MmUnmapIoSpace(m_BAR0.Base.Base, m_BAR0.Len);
@@ -308,6 +294,9 @@ NTSTATUS CCsAudioCatptSSTHW::sst_deinit() {
         this->dmac = NULL;
     }
 
+    force_stop(&this->outStream);
+    force_stop(&this->inStream);
+
     NTSTATUS status = dsp_power_down();
     if (!NT_SUCCESS(status)) {
         return status;
@@ -409,20 +398,30 @@ NTSTATUS CCsAudioCatptSSTHW::sst_stop(eDeviceType deviceType) {
         return status;
     }
 
-    MmFreeContiguousMemory(stream->pageTable);
-    stream->pageTable = NULL;
-
-    stream->allocated = false;
-    release_resource(stream->persistent);
-    stream->persistent = NULL;
-
-    dsp_update_srampge(&this->dram, this->spec->dram_mask);
+    force_stop(stream);
     return status;
     
 #else
     UNREFERENCED_PARAMETER(deviceType);
     return STATUS_SUCCESS;
 #endif
+}
+
+void CCsAudioCatptSSTHW::force_stop(catpt_stream* stream) {
+    if (stream->pageTable) {
+        MmFreeContiguousMemory(stream->pageTable);
+        stream->pageTable = NULL;
+    }
+    stream->allocated = false;
+
+    if (stream->persistent) {
+        release_resource(stream->persistent);
+        stream->persistent = NULL;
+    }
+
+    stream->prepared = false;
+
+    dsp_update_srampge(&this->dram, this->spec->dram_mask);
 }
 
 NTSTATUS CCsAudioCatptSSTHW::acp3x_current_position(eDeviceType deviceType, UINT32 *linkPos, UINT64 *linearPos) {

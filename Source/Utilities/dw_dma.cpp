@@ -201,7 +201,6 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 		}
 		else {
 			dwc = &this->chan[i];
-			DbgPrint("using channel %d!\n", i);
 			break;
 		}
 	}
@@ -348,8 +347,6 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 		UINT32 llp = channel_readl(dwc, LLP);
 		UINT32 status_xfer = dma_readl(this, RAW.XFER);
 		if (status_xfer & dwc->mask) {
-			DbgPrint("Transfer complete!!!\n");
-
 			dma_writel(this, CLEAR.XFER, dwc->mask);
 			if (dma_readl(this, CH_EN) & dwc->mask) {
 				DbgPrint("Channel not idle???\n");

@@ -133,120 +133,120 @@ struct catpt_stream* CCsAudioCatptSSTHW::catpt_stream_find(UINT8 stream_hw_id)
 	return NULL;
 }
 
-NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byteCount, PMDL mdl, IPortWaveRTStream* stream) {
+NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byteCount, PMDL mdl, IPortWaveRTStream* waveStream) {
 #if USESSTHW
 	NTSTATUS status;
 
-	int pageCount = stream->GetPhysicalPagesCount(mdl);
-	if (pageCount < 1) {
-		return STATUS_NO_MEMORY;
-	}
+	catpt_stream* stream;
+
 	switch (deviceType) {
 	case eSpeakerDevice:
-		if (!this->outStream.allocated) {
-			PHYSICAL_ADDRESS highAddr;
-			highAddr.QuadPart = MAXULONG;
-
-			UINT8* pageTable = (UINT8 *)this->outStream.pageTable;
-			if (!pageTable) {
-				this->outStream.pageTable = MmAllocateContiguousMemory(PAGE_SIZE, highAddr);
-				pageTable = (UINT8*)this->outStream.pageTable;
-			}
-			if (!pageTable) {
-				return STATUS_NO_MEMORY;
-			}
-
-			RtlZeroMemory(pageTable, PAGE_SIZE);
-			for (int i = 0; i < pageCount; i++) {
-				PHYSICAL_ADDRESS address = stream->GetPhysicalPageAddress(mdl, i);
-				LONGLONG addrVal = address.QuadPart;
-
-				UINT32 pfn = addrVal >> 12;
-				UINT32 offset = ((i << 2) + i) >> 1;
-
-				UINT32* page_table = (UINT32 *)(pageTable + offset);
-				if (i & 1)
-					*page_table |= (pfn << 4);
-				else
-					*page_table |= pfn;
-			}
-
-			PHYSICAL_ADDRESS pageTableAddr = MmGetPhysicalAddress(pageTable);
-
-			if (!this->outStream.persistent) {
-				this->outStream.persistent = catpt_request_region(&this->dram, system_pb.persistent_size);
-				dsp_update_srampge(&this->dram, this->spec->dram_mask);
-			}
-
-			struct catpt_audio_format afmt;
-			RtlZeroMemory(&afmt, sizeof(afmt));
-			afmt.sample_rate = 48000;
-			afmt.bit_depth = 16;
-			afmt.valid_bit_depth = 16;
-			afmt.num_channels = 2;
-			afmt.channel_config = CATPT_CHANNEL_CONFIG_STEREO;
-			afmt.channel_map = GENMASK(31, 8) | CATPT_CHANNEL_LEFT
-				| (CATPT_CHANNEL_RIGHT << 4);
-			afmt.interleaving = CATPT_INTERLEAVING_PER_CHANNEL;
-
-			PHYSICAL_ADDRESS firstPage = stream->GetPhysicalPageAddress(mdl, 0);
-
-			struct catpt_ring_info rinfo;
-			RtlZeroMemory(&rinfo, sizeof(rinfo));
-			rinfo.page_table_addr = pageTableAddr.LowPart; //TODO: figure out page table addr
-			rinfo.num_pages = pageCount;
-			rinfo.size = byteCount;
-			rinfo.offset = 0;
-			rinfo.ring_first_page_pfn = (firstPage.LowPart >> 12);
-
-			DbgPrint("Buffer Size: %d, Pages: %d\n", rinfo.size, rinfo.num_pages);
-
-			status = ipc_alloc_stream(
-				system_pb.path_id,
-				system_pb.type,
-				&afmt, &rinfo,
-				system_pb.num_entries,
-				system_pb.entries,
-				this->outStream.persistent,
-				this->scratch,
-				&this->outStream.info
-			);
-
-			if (!NT_SUCCESS(status)) {
-				DbgPrint("Failed to alloc stream: 0x%x\n", status);
-
-				MmFreeContiguousMemory(this->outStream.pageTable);
-				this->outStream.pageTable = NULL;
-
-				release_resource(this->outStream.persistent);
-				this->outStream.persistent = NULL;
-				dsp_update_srampge(&this->dram, this->spec->dram_mask);
-
-				this->outStream.prepared = false;
-
-				return status;
-			}
-
-			this->outStream.templ = &system_pb;
-			this->outStream.bufSz = byteCount;
-			this->outStream.allocated = true;
-		}
-
-		LONG vol;
-		vol = LONG_MAX;
-		NTSTATUS volStatus;
-		volStatus = set_dsp_vol(this->outStream.info.stream_hw_id, &vol);
-		if (!NT_SUCCESS(volStatus)) {
-			DbgPrint("Failed to set stream volume 0x%x\n", volStatus);
-			//Don't fail here
-		}
+		stream = &this->outStream;
+		stream->templ = &system_pb;
 		break;
 	case eMicJackDevice:
-		return STATUS_INVALID_PARAMETER;
+		stream = &this->inStream;
+		stream->templ = &system_cp;
 		break;
 	default:
 		DPF(D_ERROR, "Unknown device type");
 		return STATUS_INVALID_PARAMETER;
+	}
+
+	if (stream->allocated) {
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	LONG volMax[CATPT_CHANNELS_MAX] = { 0, 0, 0, 0 };
+
+	int pageCount = waveStream->GetPhysicalPagesCount(mdl);
+	if (pageCount < 1) {
+		return STATUS_NO_MEMORY;
+	}
+
+	PHYSICAL_ADDRESS highAddr;
+	highAddr.QuadPart = MAXULONG;
+
+	UINT8* pageTable = (UINT8*)stream->pageTable;
+	if (!pageTable) {
+		stream->pageTable = MmAllocateContiguousMemory(PAGE_SIZE, highAddr);
+		pageTable = (UINT8*)stream->pageTable;
+	}
+	if (!pageTable) {
+		return STATUS_NO_MEMORY;
+	}
+
+	RtlZeroMemory(pageTable, PAGE_SIZE);
+	for (int i = 0; i < pageCount; i++) {
+		PHYSICAL_ADDRESS address = waveStream->GetPhysicalPageAddress(mdl, i);
+		LONGLONG addrVal = address.QuadPart;
+
+		UINT32 pfn = addrVal >> 12;
+		UINT32 offset = ((i << 2) + i) >> 1;
+
+		UINT32* page_table = (UINT32*)(pageTable + offset);
+		if (i & 1)
+			*page_table |= (pfn << 4);
+		else
+			*page_table |= pfn;
+	}
+
+	PHYSICAL_ADDRESS pageTableAddr = MmGetPhysicalAddress(pageTable);
+
+	if (!stream->persistent) {
+		stream->persistent = catpt_request_region(&this->dram, stream->templ->persistent_size);
+		dsp_update_srampge(&this->dram, this->spec->dram_mask);
+	}
+
+	struct catpt_audio_format afmt;
+	RtlZeroMemory(&afmt, sizeof(afmt));
+	afmt.sample_rate = 48000;
+	afmt.bit_depth = 16;
+	afmt.valid_bit_depth = 16;
+	afmt.num_channels = 2;
+	afmt.channel_config = CATPT_CHANNEL_CONFIG_STEREO;
+	afmt.channel_map = GENMASK(31, 8) | CATPT_CHANNEL_LEFT
+		| (CATPT_CHANNEL_RIGHT << 4);
+	afmt.interleaving = CATPT_INTERLEAVING_PER_CHANNEL;
+
+	PHYSICAL_ADDRESS firstPage = waveStream->GetPhysicalPageAddress(mdl, 0);
+
+	struct catpt_ring_info rinfo;
+	RtlZeroMemory(&rinfo, sizeof(rinfo));
+	rinfo.page_table_addr = pageTableAddr.LowPart; //TODO: figure out page table addr
+	rinfo.num_pages = pageCount;
+	rinfo.size = byteCount;
+	rinfo.offset = 0;
+	rinfo.ring_first_page_pfn = (firstPage.LowPart >> 12);
+
+	DbgPrint("Buffer Size: %d, Pages: %d\n", rinfo.size, rinfo.num_pages);
+
+	status = ipc_alloc_stream(
+		stream->templ->path_id,
+		stream->templ->type,
+		&afmt, &rinfo,
+		stream->templ->num_entries,
+		stream->templ->entries,
+		stream->persistent,
+		this->scratch,
+		&stream->info
+	);
+
+	if (!NT_SUCCESS(status)) {
+		DbgPrint("Failed to alloc stream: 0x%x\n", status);
+
+		force_stop(stream);
+		return status;
+	}
+
+	stream->bufSz = byteCount;
+	stream->allocated = true;
+
+	NTSTATUS volStatus;
+	volStatus = set_dsp_vol(this->outStream.info.stream_hw_id, volMax);
+	if (!NT_SUCCESS(volStatus)) {
+		DbgPrint("Failed to set stream volume 0x%x\n", volStatus);
+		//Don't fail here
 	}
 #else
 	UNREFERENCED_PARAMETER(deviceType);
