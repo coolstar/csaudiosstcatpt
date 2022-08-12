@@ -139,6 +139,8 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 
 	catpt_stream* stream;
 
+	DbgPrint("Programming stream %d\n", deviceType);
+
 	switch (deviceType) {
 	case eSpeakerDevice:
 		stream = &this->outStream;
@@ -154,6 +156,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 	}
 
 	if (stream->allocated) {
+		DbgPrint("%s: Already have stream for %d\n", __func__, deviceType);
 		return STATUS_INVALID_PARAMETER;
 	}
 
@@ -239,7 +242,9 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 		return status;
 	}
 
-	stream->bufSz = byteCount;
+	stream->byteCount = byteCount;
+	stream->pMDL = mdl;
+	stream->waveRtStream = waveStream;
 	stream->allocated = true;
 
 	NTSTATUS volStatus;

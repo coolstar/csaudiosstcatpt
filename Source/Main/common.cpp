@@ -880,7 +880,7 @@ CAdapterCommon::CurrentPosition(
     _Out_ UINT64* linearPos
 ) {
     if (m_pHW) {
-        return m_pHW->acp3x_current_position(deviceType, linkPos, linearPos);
+        return m_pHW->sst_current_position(deviceType, linkPos, linearPos);
     }
     return STATUS_NO_SUCH_DEVICE;
 }

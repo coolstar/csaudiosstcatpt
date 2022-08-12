@@ -431,11 +431,6 @@ NTSTATUS CMiniportWaveRTStream::SetState
                 return ntStatus;
             }
 
-            /*if (m_KsState == KSSTATE_PAUSE) {
-                DbgPrint("Restoring last position\n");
-                m_pMiniport->UpdatePosition(m_lastLinkPos, m_lastLinearPos);
-            }*/
-
             break;
     }
 

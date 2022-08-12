@@ -150,6 +150,9 @@ CCsAudioCatptSSTHW::~CCsAudioCatptSSTHW() {
         this->ipc_rx.data = NULL;
     }
 
+    force_stop(&this->outStream);
+    force_stop(&this->inStream);
+
     if (this->m_InterruptSync) {
         this->m_InterruptSync->Disconnect();
         this->m_InterruptSync->Release();
@@ -240,8 +243,6 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
                 DbgPrint("Failed to get mixer info!\n");
                 return status;
             }
-
-            DbgPrint("Mixer hw id: %d\n", this->mixer.mixer_hw_id);
         }
 
         status = catpt_arm_stream_templates();
@@ -277,6 +278,23 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
                 return status;
             }
         }
+
+        {
+            //Check if streams need to be resumed
+            if (this->outStream.allocated) {
+                this->outStream.allocated = false;
+                DbgPrint("Reprogramming stream %d\n", eSpeakerDevice);
+                sst_program_dma(eSpeakerDevice, this->outStream.byteCount, this->outStream.pMDL, this->outStream.waveRtStream);
+                sst_play(eSpeakerDevice);
+            }
+
+            if (this->inStream.allocated) {
+                this->inStream.allocated = false;
+                DbgPrint("Reprogramming stream %d\n", eMicJackDevice);
+                sst_program_dma(eMicJackDevice, this->inStream.byteCount, this->inStream.pMDL, this->inStream.waveRtStream);
+                sst_play(eMicJackDevice);
+            }
+        }
     }
 
     return status;
@@ -294,13 +312,13 @@ NTSTATUS CCsAudioCatptSSTHW::sst_deinit() {
         this->dmac = NULL;
     }
 
-    force_stop(&this->outStream);
-    force_stop(&this->inStream);
-
     NTSTATUS status = dsp_power_down();
     if (!NT_SUCCESS(status)) {
         return status;
     }
+
+    this->outStream.persistent = NULL;
+    this->inStream.persistent = NULL;
 
     sram_free(&this->iram);
     sram_free(&this->dram);
@@ -315,6 +333,8 @@ NTSTATUS CCsAudioCatptSSTHW::sst_play(eDeviceType deviceType) {
     UINT8 stream_id;
     UINT32 link_reg;
     NTSTATUS status;
+
+    DbgPrint("Playing stream %d\n", deviceType);
 
     catpt_stream* stream;
 
@@ -368,6 +388,8 @@ NTSTATUS CCsAudioCatptSSTHW::sst_stop(eDeviceType deviceType) {
 
     catpt_stream* stream;
 
+    DbgPrint("Stopping stream %d\n", deviceType);
+
     switch (deviceType) {
     case eSpeakerDevice:
         stream = &this->outStream;
@@ -381,7 +403,11 @@ NTSTATUS CCsAudioCatptSSTHW::sst_stop(eDeviceType deviceType) {
     }
 
     if (!stream->allocated) {
-        return STATUS_INVALID_PARAMETER;
+        force_stop(stream);
+        
+        dsp_update_lpclock();
+
+        return STATUS_SUCCESS;
     }
 
     UINT8 stream_id = stream->info.stream_hw_id;
@@ -424,7 +450,7 @@ void CCsAudioCatptSSTHW::force_stop(catpt_stream* stream) {
     dsp_update_srampge(&this->dram, this->spec->dram_mask);
 }
 
-NTSTATUS CCsAudioCatptSSTHW::acp3x_current_position(eDeviceType deviceType, UINT32 *linkPos, UINT64 *linearPos) {
+NTSTATUS CCsAudioCatptSSTHW::sst_current_position(eDeviceType deviceType, UINT32 *linkPos, UINT64 *linearPos) {
 #if USESSTHW
     UINT32 regaddr;
     catpt_stream* stream;

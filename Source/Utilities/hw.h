@@ -109,7 +109,10 @@ struct catpt_stream {
     PRESOURCE persistent;
 
     PVOID pageTable;
-    UINT32 bufSz;
+
+    UINT32 byteCount;
+    PMDL pMDL;
+    IPortWaveRTStream* waveRtStream;
 
     BOOL allocated;
     BOOL prepared;
@@ -261,7 +264,7 @@ public:
     NTSTATUS sst_play(eDeviceType deviceType);
     NTSTATUS sst_stop(eDeviceType deviceType);
     void force_stop(catpt_stream* stream);
-    NTSTATUS acp3x_current_position(eDeviceType deviceType, UINT32* linkPos, UINT64* linearPos);
+    NTSTATUS sst_current_position(eDeviceType deviceType, UINT32* linkPos, UINT64* linearPos);
     
     void                        MixerReset();
     BOOL                        bGetDevSpecific();
