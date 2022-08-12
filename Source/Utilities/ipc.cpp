@@ -54,7 +54,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_send_msg(struct catpt_ipc_msg request,
 	NTSTATUS status;
 	status = ipc_wait_completion(timeout);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("IPC Failed!!!\n");
+		DPF(D_ERROR, "IPC Failed!!!\n");
 		this->ipc_ready = false;
 		return status;
 	}
@@ -68,7 +68,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_send_msg(struct catpt_ipc_msg request,
 	}
 
 	if (ret) {
-		DbgPrint("SST returned %d\n", ret);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "SST returned %d\n", ret);
 		return STATUS_INVALID_DEVICE_STATE;
 	}
 	return status;
@@ -82,7 +82,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_wait_completion(int timeout) {
 		KeQuerySystemTimePrecise(&CurrentTime);
 
 		if (((CurrentTime.QuadPart - StartTime.QuadPart) / (10 * 1000)) >= timeout) {
-			DbgPrint("Timed out waiting for transmit IPC\n");
+			DPF(D_ERROR, "Timed out waiting for transmit IPC\n");
 			return STATUS_IO_TIMEOUT;
 		}
 
@@ -100,7 +100,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_wait_completion(int timeout) {
 		KeQuerySystemTimePrecise(&CurrentTime);
 
 		if (((CurrentTime.QuadPart - StartTime.QuadPart) / (10 * 1000)) >= timeout) {
-			DbgPrint("Timed out waiting for receive IPC\n");
+			DPF(D_ERROR, "Timed out waiting for receive IPC\n");
 			return STATUS_IO_TIMEOUT;
 		}
 
@@ -131,7 +131,7 @@ void CCsAudioCatptSSTHW::dsp_copy_rx(UINT32 header)
 void CCsAudioCatptSSTHW::dsp_notify_stream(union catpt_notify_msg msg) {
 	catpt_stream *stream = catpt_stream_find(msg.stream_hw_id);
 	if (!stream) {
-		DbgPrint("notify %d for non-existent stream %d\n", msg.notify_reason, msg.stream_hw_id);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "notify %d for non-existent stream %d\n", msg.notify_reason, msg.stream_hw_id);
 		return;
 	}
 
@@ -140,18 +140,19 @@ void CCsAudioCatptSSTHW::dsp_notify_stream(union catpt_notify_msg msg) {
 
 	switch (msg.notify_reason) {
 	case CATPT_NOTIFY_POSITION_CHANGED:
+		memcpy_io(&pos, catpt_inbox_addr(this), sizeof(pos));
 		break;
 
 	case CATPT_NOTIFY_GLITCH_OCCURRED:
 		memcpy_io(&glitch, catpt_inbox_addr(this), sizeof(glitch));
 
-		DbgPrint("glitch %d at pos: 0x%08llx, wp: 0x%08x\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "glitch %d at pos: 0x%08llx, wp: 0x%08x\n",
 			glitch.type, glitch.presentation_pos,
 			glitch.write_pos);
 		break;
 
 	default:
-		DbgPrint("unknown notification: %d received\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "unknown notification: %d received\n",
 			msg.notify_reason);
 		break;
 	}
@@ -175,7 +176,7 @@ void CCsAudioCatptSSTHW::dsp_process_response(UINT32 header)
 
 	switch (msg.global_msg_type) {
 	case CATPT_GLB_REQUEST_CORE_DUMP:
-		DbgPrint("ADSP device coredump received\n");
+		DPF(D_ERROR, "ADSP device coredump received\n");
 		this->ipc_ready = false;
 		//catpt_coredump();
 		/* TODO: attempt recovery */
@@ -195,7 +196,7 @@ void CCsAudioCatptSSTHW::dsp_process_response(UINT32 header)
 		break;
 
 	default:
-		DbgPrint("unknown response: %d received\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "unknown response: %d received\n",
 			msg.global_msg_type);
 		break;
 	}

@@ -91,7 +91,7 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_block(PHYSICAL_ADDRESS pAddr, struct cat
 		break;
 	}
 
-	UINT32 dst_addr = sram->start + blk->ram_offset;
+	UINT32 dst_addr = (UINT32)(sram->start + blk->ram_offset);
 	//TODO: mark region as busy
 
 	if (alloc) {
@@ -133,7 +133,7 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_module(PHYSICAL_ADDRESS paddr, struct ca
 		blockPaddr.QuadPart = paddr.QuadPart + offset;
 		status = catpt_load_block(blockPaddr, blk, true);
 		if (!NT_SUCCESS(status)) {
-			DbgPrint("load block failed: 0x%x\n", status);
+			CatPtPrint(DEBUG_LEVEL_ERROR, DBG_PNP, "load block failed: 0x%x\n", status);
 			return status;
 		}
 		/*
@@ -168,7 +168,7 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_firmware(PHYSICAL_ADDRESS paddr, struct 
 		mod = (struct catpt_fw_mod_hdr*)((UINT8*)fw + offset);
 		if (strncmp(fw->signature, mod->signature,
 			FW_SIGNATURE_SIZE)) {
-			DbgPrint("module signature mismatch\n");
+			DPF(D_ERROR, "module signature mismatch\n");
 			return STATUS_INVALID_PARAMETER;
 		}
 
@@ -179,7 +179,7 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_load_firmware(PHYSICAL_ADDRESS paddr, struct 
 		modulePaddr.QuadPart = paddr.QuadPart + offset;
 		status = catpt_load_module(modulePaddr, mod);
 		if (!NT_SUCCESS(status)) {
-			DbgPrint("load module failed: 0x%x\n", status);
+			CatPtPrint(DEBUG_LEVEL_ERROR, DBG_PNP, "load module failed: 0x%x\n", status);
 			return status;
 		}
 
@@ -240,7 +240,7 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_boot_firmware(BOOL restore) {
 
 	status = catpt_load_image(L"\\SystemRoot\\system32\\DRIVERS\\IntcSST2.bin", restore);
 	if (status) {
-		DbgPrint("Load binaries failed: 0x%x\n", status);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_PNP, "Load binaries failed: 0x%x\n", status);
 		return status;
 	}
 
@@ -254,11 +254,11 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_boot_firmware(BOOL restore) {
 		KeQuerySystemTimePrecise(&CurrentTime);
 
 		if (((CurrentTime.QuadPart - StartTime.QuadPart) / (10 * 1000)) >= FW_READY_TIMEOUT_MS) {
-			DbgPrint("Firmware ready timeout\n");
+			DPF(D_ERROR, "Firmware ready timeout\n");
 			return STATUS_TIMEOUT;
 		}
 	}
-	DbgPrint("Firmware ready!!!\n");
+	DPF(D_ERROR, "Firmware ready!!!\n");
 
 	/* update sram pg & clock once done booting */
 	dsp_update_srampge(&this->dram, this->spec->dram_mask);

@@ -15,14 +15,35 @@ Abstract:
 
 #ifndef _CSAUDIOACP3X_HW_H_
 #define _CSAUDIOACP3X_HW_H_
-
-#define USEACPHW 0
 #define USESSTHW 1
 
-#if USEACPHW
-#include "acp_chip_offset_byte.h"
-#include "acp3x.h"
-#define BIT(nr) (1UL << (nr))
+//
+// Helper macros
+//
+
+#define DEBUG_LEVEL_ERROR   1
+#define DEBUG_LEVEL_INFO    2
+#define DEBUG_LEVEL_VERBOSE 3
+
+#define CatptDebugLevel 100;
+#define CatptDebugCatagories (DBG_INIT || DBG_PNP || DBG_IOCTL)
+
+#define DBG_INIT  1
+#define DBG_PNP   2
+#define DBG_IOCTL 4
+
+#if 0
+#define CatPtPrint(dbglevel, dbgcatagory, fmt, ...) {          \
+    if (CatptDebugLevel >= dbglevel &&                         \
+        (CatptDebugCatagories && dbgcatagory))                 \
+		    {                                                           \
+        DbgPrint(DRIVERNAME);                                   \
+        DbgPrint(fmt, __VA_ARGS__);                             \
+		    }                                                           \
+}
+#else
+#define CatPtPrint(dbglevel, fmt, ...) {                       \
+}
 #endif
 
 #if USESSTHW
@@ -236,7 +257,7 @@ private:
     //messages private methods
     NTSTATUS ipc_alloc_stream(enum catpt_path_id path_id, enum catpt_stream_type type,
         struct catpt_audio_format* afmt, struct catpt_ring_info* rinfo, UINT8 num_modules,
-        struct catpt_module_entry* modules, PRESOURCE persistent, PRESOURCE scratch, struct catpt_stream_info* sinfo);
+        struct catpt_module_entry* modules, PRESOURCE persistent, struct catpt_stream_info* sinfo);
     NTSTATUS ipc_free_stream(UINT8 stream_hw_id);
     NTSTATUS ipc_set_device_format(struct catpt_ssp_device_format* devfmt);
     NTSTATUS ipc_set_volume(UINT8 stream_hw_id,

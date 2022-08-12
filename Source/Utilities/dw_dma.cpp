@@ -1,6 +1,7 @@
 #include <ntddk.h>
 #include "dw_dma.h"
 #include "bitops.h"
+#include "hw.h"
 
 // Pool tag used for DMA allocations
 #define DWDMA_POOLTAG               'MDWD'  
@@ -22,7 +23,7 @@ NTSTATUS DwDMA::init() {
 	}
 
 	UINT32 dw_params = dma_readl(this, DW_PARAMS);
-	DbgPrint("DW_PARMS: 0x%08x\n", dw_params);
+	CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "DW_PARMS: 0x%08x\n", dw_params);
 
 	BOOL autocfg = FALSE;
 	autocfg = dw_params >> DW_PARAMS_EN & 1;
@@ -30,10 +31,6 @@ NTSTATUS DwDMA::init() {
 		status = STATUS_INVALID_PARAMETER;
 		goto err_pdata;
 	}
-
-	struct dw_dma_platform_data* pdata;
-	/* Reassign the platform data pointer */
-	pdata = this->pdata;
 
 	/* Get hardware configuration parameters */
 	pdata->nr_channels = (dw_params >> DW_PARAMS_NR_CHAN & 7) + 1;
@@ -63,14 +60,14 @@ NTSTATUS DwDMA::init() {
 	/* Force dma off, just in case */
 	this->disable();
 
-	for (int i = 0; i < pdata->nr_channels; i++) {
+	for (UINT32 i = 0; i < pdata->nr_channels; i++) {
 		struct dw_dma_chan* dwc = &this->chan[i];
 
 		/* 7 is highest priority & 0 is lowest. */
 		if (pdata->chan_priority == CHAN_PRIORITY_ASCENDING)
-			dwc->priority = pdata->nr_channels - i - 1;
+			dwc->priority = (UINT8)(pdata->nr_channels - i - 1);
 		else
-			dwc->priority = i;
+			dwc->priority = (UINT8)i;
 
 		dwc->ch_regs = &__dw_regs(this)->CHAN[i];
 
@@ -88,7 +85,7 @@ NTSTATUS DwDMA::init() {
 			void* addr = &__dw_regs(this)->DWC_PARAMS[r];
 			unsigned int dwc_params = readl(addr);
 
-			DbgPrint("DWC_PARAMS[%d]: 0x%08x\n", i,
+			CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "DWC_PARAMS[%d]: 0x%08x\n", i,
 				dwc_params);
 
 			/*
@@ -135,7 +132,7 @@ err_pdata:
 DwDMA::~DwDMA() {
 	this->disable();
 
-	for (int i = 0; i < pdata->nr_channels; i++) {
+	for (UINT32 i = 0; i < pdata->nr_channels; i++) {
 		struct dw_dma_chan* dwc = &this->chan[i];
 		channel_clear_bit(this, CH_EN, dwc->mask);
 	}
@@ -177,12 +174,12 @@ void DwDMA::writel(UINT32 data, PVOID addr) {
 	//DbgPrint("Write to %p: 0x%x\n", addr, data);
 }
 
-UINT32 DwDMA::bytes2block(struct dw_dma_chan* dwc, size_t bytes, unsigned int width, size_t* len) {
+UINT32 DwDMA::bytes2block(struct dw_dma_chan* dwc, UINT32 bytes, unsigned int width, UINT32* len) {
 	UINT32 block;
 
 	if ((bytes >> width) > dwc->block_size) {
 		block = dwc->block_size;
-		*len = (size_t)dwc->block_size << width;
+		*len = (UINT32)dwc->block_size << width;
 	}
 	else {
 		block = bytes >> width;
@@ -192,12 +189,12 @@ UINT32 DwDMA::bytes2block(struct dw_dma_chan* dwc, size_t bytes, unsigned int wi
 	return block;
 }
 
-NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
+NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, UINT32 len) {
 	this->enable();
 	struct dw_dma_chan* dwc = NULL;
-	for (int i = 0; i < this->pdata->nr_channels; i++) {
+	for (UINT32 i = 0; i < this->pdata->nr_channels; i++) {
 		if (dma_readl(this, CH_EN) & this->chan[i].mask) {
-			DbgPrint("Channel not idle!\n");
+			DPF(D_ERROR, "Channel not idle!\n");
 		}
 		else {
 			dwc = &this->chan[i];
@@ -260,7 +257,7 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 	struct dw_lli* prev;
 	prev = NULL;
 
-	size_t xfer_count, offset;
+	UINT32 xfer_count, offset;
 	for (offset = 0; offset < len; offset += xfer_count) {
 		ctlhi = this->bytes2block(dwc, len - offset, src_width, &xfer_count);
 
@@ -268,12 +265,12 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 		struct dw_lli* cur = (struct dw_lli*)curVaddr;
 		if (curVaddr + sizeof(struct dw_lli) > vaddr + 0x1000) {
 			status = STATUS_NO_MEMORY;
-			DbgPrint("Unable to get lli entry\n");
+			DPF(D_ERROR, "Unable to get lli entry\n");
 			goto err;
 		}
 
-		cur->sar = src + offset;
-		cur->dar = dest + offset;
+		cur->sar = (UINT32)(src + offset);
+		cur->dar = (UINT32)(dest + offset);
 		cur->ctllo = ctllo;
 		cur->ctlhi = ctlhi;
 		cur->llp = 0;
@@ -333,8 +330,8 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 		KeQuerySystemTimePrecise(&Cur);
 
 		if (Cur.QuadPart - Start.QuadPart > 10 * 1000 * 1000 * 1) {
-			DbgPrint("Timed out!\n");
-			DbgPrint("Regs; SAR: 0x%x DAR: 0x%x LLP: 0x%x CTL: 0x%x:%08x\n",
+			CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "Timed out!\n");
+			CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "Regs; SAR: 0x%x DAR: 0x%x LLP: 0x%x CTL: 0x%x:%08x\n",
 				channel_readl(dwc, SAR),
 				channel_readl(dwc, DAR),
 				channel_readl(dwc, LLP),
@@ -344,12 +341,11 @@ NTSTATUS DwDMA::transfer_dma(UINT32 dest, UINT32 src, size_t len) {
 			break;
 		}
 
-		UINT32 llp = channel_readl(dwc, LLP);
 		UINT32 status_xfer = dma_readl(this, RAW.XFER);
 		if (status_xfer & dwc->mask) {
 			dma_writel(this, CLEAR.XFER, dwc->mask);
 			if (dma_readl(this, CH_EN) & dwc->mask) {
-				DbgPrint("Channel not idle???\n");
+				DPF(D_ERROR, "Channel not idle???\n");
 				status = STATUS_INTERNAL_ERROR;
 			}
 			else {

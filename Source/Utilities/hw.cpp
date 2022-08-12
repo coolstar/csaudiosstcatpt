@@ -240,14 +240,14 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
 
             status = ipc_send_msg(request, &reply, CATPT_IPC_TIMEOUT_MS);
             if (!NT_SUCCESS(status)) {
-                DbgPrint("Failed to get mixer info!\n");
+                DPF(D_ERROR, "Failed to get mixer info!\n");
                 return status;
             }
         }
 
         status = catpt_arm_stream_templates();
         if (!NT_SUCCESS(status)) {
-            DbgPrint("arm templates failed\n");
+            DPF(D_ERROR, "arm templates failed\n");
             return status;
         }
 
@@ -264,7 +264,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
             devfmt.clock_divider = 9;
             status = ipc_set_device_format(&devfmt);
             if (!NT_SUCCESS(status)) {
-                DbgPrint("set device fmt failed\n");
+                DPF(D_ERROR, "set device fmt failed\n");
                 return status;
             }
         }
@@ -272,9 +272,9 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
         {
             //Set mixer volume
             LONG volMax[CATPT_CHANNELS_MAX] = {0x1e, 0x1e, 0x1e, 0x1e};
-            status = set_dsp_vol(this->mixer.mixer_hw_id, volMax);
+            status = set_dsp_vol((UINT8)this->mixer.mixer_hw_id, volMax);
             if (!NT_SUCCESS(status)) {
-                DbgPrint("set mixer vol failed\n");
+                DPF(D_ERROR, "set mixer vol failed\n");
                 return status;
             }
         }
@@ -283,14 +283,14 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
             //Check if streams need to be resumed
             if (this->outStream.allocated) {
                 this->outStream.allocated = false;
-                DbgPrint("Reprogramming stream %d\n", eSpeakerDevice);
+                CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_PNP, "Reprogramming stream %d\n", eSpeakerDevice);
                 sst_program_dma(eSpeakerDevice, this->outStream.byteCount, this->outStream.pMDL, this->outStream.waveRtStream);
                 sst_play(eSpeakerDevice);
             }
 
             if (this->inStream.allocated) {
                 this->inStream.allocated = false;
-                DbgPrint("Reprogramming stream %d\n", eMicJackDevice);
+                CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_PNP, "Reprogramming stream %d\n", eMicJackDevice);
                 sst_program_dma(eMicJackDevice, this->inStream.byteCount, this->inStream.pMDL, this->inStream.waveRtStream);
                 sst_play(eMicJackDevice);
             }
@@ -331,10 +331,9 @@ NTSTATUS CCsAudioCatptSSTHW::sst_deinit() {
 NTSTATUS CCsAudioCatptSSTHW::sst_play(eDeviceType deviceType) {
 #if USESSTHW
     UINT8 stream_id;
-    UINT32 link_reg;
     NTSTATUS status;
 
-    DbgPrint("Playing stream %d\n", deviceType);
+    CatPtPrint(DEBUG_LEVEL_INFO, DBG_IOCTL, "Playing stream %d\n", deviceType);
 
     catpt_stream* stream;
 
@@ -353,7 +352,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_play(eDeviceType deviceType) {
     if (!stream->allocated) {
         return STATUS_INVALID_PARAMETER;
     }
-    stream_id = stream->info.stream_hw_id;
+    stream_id = (UINT8)stream->info.stream_hw_id;
 
     status = ipc_reset_stream(stream_id);
     if (!NT_SUCCESS(status)) {
@@ -363,11 +362,6 @@ NTSTATUS CCsAudioCatptSSTHW::sst_play(eDeviceType deviceType) {
     if (!NT_SUCCESS(status)) {
         return status;
     }
-
-    /*status = ipc_set_write_pos(stream_id, 0, false, false);
-    if (!NT_SUCCESS(status)) {
-        return status;
-    }*/
 
     stream->prepared = true;
     dsp_update_lpclock();
@@ -383,12 +377,11 @@ NTSTATUS CCsAudioCatptSSTHW::sst_play(eDeviceType deviceType) {
 
 NTSTATUS CCsAudioCatptSSTHW::sst_stop(eDeviceType deviceType) {
 #if USESSTHW
-    UINT32 link_reg;
     NTSTATUS status;
 
     catpt_stream* stream;
 
-    DbgPrint("Stopping stream %d\n", deviceType);
+    CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "Stopping stream %d\n", deviceType);
 
     switch (deviceType) {
     case eSpeakerDevice:
@@ -410,7 +403,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_stop(eDeviceType deviceType) {
         return STATUS_SUCCESS;
     }
 
-    UINT8 stream_id = stream->info.stream_hw_id;
+    UINT8 stream_id = (UINT8)stream->info.stream_hw_id;
     status = ipc_pause_stream(stream_id);
     if (!NT_SUCCESS(status)) {
         return status;

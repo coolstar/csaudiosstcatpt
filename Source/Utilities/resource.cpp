@@ -100,7 +100,7 @@ void __release_region(PRESOURCE parent, size_t start,
 		p = &res->sibling;
 	}
 
-	DbgPrint("Trying to free nonexistent resource "
+	CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "Trying to free nonexistent resource "
 		"<%016llx-%016llx>\n", (unsigned long long)start,
 		(unsigned long long)end);
 }

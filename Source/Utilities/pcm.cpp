@@ -102,26 +102,6 @@ NTSTATUS CCsAudioCatptSSTHW::catpt_arm_stream_templates()
 	return 0;
 }
 
-static struct catpt_stream_template*
-catpt_get_stream_template(eDeviceType deviceType)
-{
-	enum catpt_stream_type type;
-
-	switch (deviceType) {
-	case eSpeakerDevice:
-		type = CATPT_STRM_TYPE_SYSTEM;
-		break;
-	case eMicJackDevice:
-		type = CATPT_STRM_TYPE_CAPTURE;
-		break;
-	default:
-		type = CATPT_STRM_TYPE_SYSTEM;
-		break;
-	}
-
-	return catpt_topology[type];
-}
-
 struct catpt_stream* CCsAudioCatptSSTHW::catpt_stream_find(UINT8 stream_hw_id)
 {
 	if (this->outStream.info.stream_hw_id == stream_hw_id) {
@@ -139,7 +119,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 
 	catpt_stream* stream;
 
-	DbgPrint("Programming stream %d\n", deviceType);
+	CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "Programming stream %d\n", deviceType);
 
 	switch (deviceType) {
 	case eSpeakerDevice:
@@ -151,12 +131,12 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 		stream->templ = &system_cp;
 		break;
 	default:
-		DPF(D_ERROR, "Unknown device type");
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "Unknown device type");
 		return STATUS_INVALID_PARAMETER;
 	}
 
 	if (stream->allocated) {
-		DbgPrint("%s: Already have stream for %d\n", __func__, deviceType);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "%s: Already have stream for %d\n", __func__, deviceType);
 		return STATUS_INVALID_PARAMETER;
 	}
 
@@ -184,7 +164,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 		PHYSICAL_ADDRESS address = waveStream->GetPhysicalPageAddress(mdl, i);
 		LONGLONG addrVal = address.QuadPart;
 
-		UINT32 pfn = addrVal >> 12;
+		UINT32 pfn = (UINT32)(addrVal >> 12);
 		UINT32 offset = ((i << 2) + i) >> 1;
 
 		UINT32* page_table = (UINT32*)(pageTable + offset);
@@ -222,7 +202,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 	rinfo.offset = 0;
 	rinfo.ring_first_page_pfn = (firstPage.LowPart >> 12);
 
-	DbgPrint("Buffer Size: %d, Pages: %d\n", rinfo.size, rinfo.num_pages);
+	CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "Buffer Size: %d, Pages: %d\n", rinfo.size, rinfo.num_pages);
 
 	status = ipc_alloc_stream(
 		stream->templ->path_id,
@@ -231,12 +211,11 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 		stream->templ->num_entries,
 		stream->templ->entries,
 		stream->persistent,
-		this->scratch,
 		&stream->info
 	);
 
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("Failed to alloc stream: 0x%x\n", status);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "Failed to alloc stream: 0x%x\n", status);
 
 		force_stop(stream);
 		return status;
@@ -248,9 +227,9 @@ NTSTATUS CCsAudioCatptSSTHW::sst_program_dma(eDeviceType deviceType, UINT32 byte
 	stream->allocated = true;
 
 	NTSTATUS volStatus;
-	volStatus = set_dsp_vol(this->outStream.info.stream_hw_id, volMax);
+	volStatus = set_dsp_vol((UINT8)this->outStream.info.stream_hw_id, volMax);
 	if (!NT_SUCCESS(volStatus)) {
-		DbgPrint("Failed to set stream volume 0x%x\n", volStatus);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "Failed to set stream volume 0x%x\n", volStatus);
 		//Don't fail here
 	}
 #else

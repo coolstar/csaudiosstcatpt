@@ -12,7 +12,7 @@ NTSTATUS CCsAudioCatptSSTHW::dsp_select_lpclock(BOOL lp, BOOL waiti)
 
 	val = lp ? CATPT_CS_LPCS : 0;
 	reg = catpt_readl_shim(this, CS1) & CATPT_CS_LPCS;
-	DbgPrint("LPCS [0x%08lx] 0x%08x -> 0x%08x",
+	CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "LPCS [0x%08lx] 0x%08x -> 0x%08x",
 		CATPT_CS_LPCS, reg, val);
 
 	if (reg == val) {
@@ -26,7 +26,7 @@ NTSTATUS CCsAudioCatptSSTHW::dsp_select_lpclock(BOOL lp, BOOL waiti)
 			CATPT_ISD_DCPWM, CATPT_ISD_DCPWM,
 			500, 10000);
 		if (ret) {
-			DbgPrint("await WAITI timeout\n");
+			DPF(D_ERROR, "await WAITI timeout\n");
 			/* no signal - only high clock selection allowed */
 			if (lp) {
 				ExReleaseFastMutex(&clk_mutex);
@@ -39,7 +39,7 @@ NTSTATUS CCsAudioCatptSSTHW::dsp_select_lpclock(BOOL lp, BOOL waiti)
 		0, CATPT_CLKCTL_CFCIP,
 		500, 10000);
 	if (ret)
-		DbgPrint("clock change still in progress\n");
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "clock change still in progress\n");
 
 	/* default to DSP core & audio fabric high clock */
 	val |= CATPT_CS_DCS_HIGH;
@@ -50,7 +50,7 @@ NTSTATUS CCsAudioCatptSSTHW::dsp_select_lpclock(BOOL lp, BOOL waiti)
 		0, CATPT_CLKCTL_CFCIP,
 		500, 10000);
 	if (ret)
-		DbgPrint("clock change still in progress\n");
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "clock change still in progress\n");
 
 	/* update PLL accordingly */
 	catpt_updatel_pci_raw(this, this->spec->pll_shutdown_reg, this->spec->pll_shutdown_val, lp ? this->spec->pll_shutdown_val : 0);
@@ -104,10 +104,10 @@ void CCsAudioCatptSSTHW::dsp_set_srampge(PRESOURCE sram,
 	unsigned long mask, unsigned long newVal)
 {
 	unsigned long oldVal;
-	UINT32 off = sram->start;
+	UINT32 off = (UINT32)sram->start;
 
 	oldVal = catpt_readl_pci(this, VDRTCTL0) & mask;
-	DbgPrint("SRAMPGE [0x%08lx] 0x%08lx -> 0x%08lx",
+	CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "SRAMPGE [0x%08lx] 0x%08lx -> 0x%08lx",
 		mask, oldVal, newVal);
 
 	if (oldVal == newVal)
@@ -130,7 +130,7 @@ void CCsAudioCatptSSTHW::dsp_set_srampge(PRESOURCE sram,
 
 		/* newly enabled: new bit=0 while old bit=1 */
 		if ((oldVal >> bit) & 1) {
-			DbgPrint("sanitize block %ld: off 0x%08x\n",
+			CatPtPrint(DEBUG_LEVEL_VERBOSE, DBG_IOCTL, "sanitize block %ld: off 0x%08x\n",
 				bit - __ffs(mask), off);
 			memcpy(buf, this->lpe_ba + off, sizeof(buf));
 		}
@@ -148,8 +148,8 @@ void CCsAudioCatptSSTHW::dsp_update_srampge(PRESOURCE sram,
 	for (resVal = sram->child; resVal; resVal = resVal->sibling) {
 		UINT32 h, l;
 
-		h = (resVal->end - sram->start) / CATPT_MEMBLOCK_SIZE;
-		l = (resVal->start - sram->start) / CATPT_MEMBLOCK_SIZE;
+		h = (UINT32)((resVal->end - sram->start) / CATPT_MEMBLOCK_SIZE);
+		l = (UINT32)((resVal->start - sram->start) / CATPT_MEMBLOCK_SIZE);
 		newVal |= GENMASK(h, l);
 	}
 

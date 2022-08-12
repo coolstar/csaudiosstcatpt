@@ -368,13 +368,13 @@ private:
 	void disable();
 	void enable();
 
-	UINT32 bytes2block(struct dw_dma_chan* dwc, size_t bytes, unsigned int width, size_t* len);
+	UINT32 bytes2block(struct dw_dma_chan* dwc, UINT32 bytes, unsigned int width, UINT32* len);
 
 	UINT32 readl(PVOID reg);
 	void writel(UINT32 val, PVOID reg);
 
 public:
-	NTSTATUS transfer_dma(UINT32 dest, UINT32 src, size_t len);
+	NTSTATUS transfer_dma(UINT32 dest, UINT32 src, UINT32 len);
 };
 typedef DwDMA* PDwDMA;
 

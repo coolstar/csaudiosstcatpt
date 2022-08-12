@@ -26,9 +26,8 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_alloc_stream(
 	struct catpt_audio_format* afmt,
 	struct catpt_ring_info* rinfo,
 	UINT8 num_modules,
-	struct catpt_module_entry* modules,
+	struct catpt_module_entry* mods,
 	PRESOURCE persistent,
-	PRESOURCE scratch,
 	struct catpt_stream_info* sinfo
 ) {
 	union catpt_global_msg msg = CATPT_GLOBAL_MSG(ALLOCATE_STREAM);
@@ -40,7 +39,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_alloc_stream(
 	NTSTATUS status;
 
 	off = offsetof(struct catpt_alloc_stream_input, persistent_mem);
-	arrsz = sizeof(*modules) * num_modules;
+	arrsz = sizeof(*mods) * num_modules;
 	size = sizeof(input) + arrsz;
 
 	payload = (UINT8 *)ExAllocatePool2(POOL_FLAG_NON_PAGED, size, CSAUDIOCATPTSST_POOLTAG);
@@ -55,17 +54,17 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_alloc_stream(
 	input.input_format = *afmt;
 	input.ring_info = *rinfo;
 	input.num_entries = num_modules;
-	input.persistent_mem.offset = catpt_to_dsp_offset(persistent->start);
-	input.persistent_mem.size = resource_size(persistent);
+	input.persistent_mem.offset = (UINT32)catpt_to_dsp_offset(persistent->start);
+	input.persistent_mem.size = (UINT32)resource_size(persistent);
 	if (scratch) {
-		input.scratch_mem.offset = catpt_to_dsp_offset(scratch->start);
-		input.scratch_mem.size = resource_size(scratch);
+		input.scratch_mem.offset = (UINT32)catpt_to_dsp_offset(scratch->start);
+		input.scratch_mem.size = (UINT32)resource_size(scratch);
 	}
 
 	/* re-arrange the input: account for flex array 'entries' */
 	memcpy(payload, &input, sizeof(input));
 	memmove(payload + off + arrsz, payload + off, sizeof(input) - off);
-	memcpy(payload + off, modules, arrsz);
+	memcpy(payload + off, mods, arrsz);
 
 	request.header = msg.val;
 	request.size = size;
@@ -75,7 +74,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_alloc_stream(
 
 	status = ipc_send_msg(request, &reply, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("alloc stream type %d failed 0x%x\n", type, status);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "alloc stream type %d failed 0x%x\n", type, status);
 	}
 	ExFreePoolWithTag(payload, CSAUDIOCATPTSST_POOLTAG);
 	return status;
@@ -93,7 +92,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_free_stream(UINT8 stream_hw_id)
 
 	status = ipc_send_msg(request, NULL, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("free stream %d failed: %d\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "free stream %d failed: %d\n",
 			stream_hw_id, status);
 	}
 
@@ -112,7 +111,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_set_device_format(struct catpt_ssp_device_forma
 
 	status = ipc_send_msg(request, NULL, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("set device format failed: %d\n", status);
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "set device format failed: %d\n", status);
 	}
 
 	return status;
@@ -149,7 +148,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_set_volume(UINT8 stream_hw_id,
 
 	status = ipc_send_msg(request, NULL, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("set stream %d volume failed: 0x%x\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "set stream %d volume failed: 0x%x\n",
 		stream_hw_id, status);
 	}
 
@@ -183,7 +182,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_set_write_pos(UINT8 stream_hw_id,
 
 	status = ipc_send_msg(request, NULL, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("set stream %d write pos failed: 0x%x\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "set stream %d write pos failed: 0x%x\n",
 			stream_hw_id, status);
 	}
 
@@ -201,7 +200,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_reset_stream(UINT8 stream_hw_id)
 
 	status = ipc_send_msg(request, NULL, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("reset stream %d failed : 0x%x\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "reset stream %d failed : 0x%x\n",
 			stream_hw_id, status);
 	}
 
@@ -219,7 +218,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_pause_stream(UINT8 stream_hw_id)
 
 	status = ipc_send_msg(request, NULL, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("pause stream %d failed : 0x%x\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "pause stream %d failed : 0x%x\n",
 			stream_hw_id, status);
 	}
 
@@ -237,7 +236,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_resume_stream(UINT8 stream_hw_id)
 
 	status = ipc_send_msg(request, NULL, CATPT_IPC_TIMEOUT_MS);
 	if (!NT_SUCCESS(status)) {
-		DbgPrint("resume stream %d failed : 0x%x\n",
+		CatPtPrint(DEBUG_LEVEL_ERROR, DBG_IOCTL, "resume stream %d failed : 0x%x\n",
 			stream_hw_id, status);
 	}
 
