@@ -145,6 +145,10 @@ Return Value:
         m_SystemStreams = NULL;
     }
 
+    if (m_pAdapterCommon) {
+        SAFE_RELEASE(m_pAdapterCommon);
+    }
+
 } // ~CMiniportWaveRT
 
 //=============================================================================
@@ -1666,21 +1670,33 @@ exit:
 #pragma code_seg("PAGE")
 NTSTATUS
 CMiniportWaveRT::AcquireDMA(_In_ PCMiniportWaveRTStream _Stream, UINT32 byteCount) {
+    if (!m_pAdapterCommon) {
+        return STATUS_NO_SUCH_DEVICE;
+    }
     return m_pAdapterCommon->PrepareDMA(m_DeviceType, byteCount, _Stream->m_pMDL, _Stream->m_pPortStream);
 }
 
 NTSTATUS
 CMiniportWaveRT::StartDMA() {
+    if (!m_pAdapterCommon) {
+        return STATUS_NO_SUCH_DEVICE;
+    }
     return m_pAdapterCommon->StartDMA(m_DeviceType);
 }
 
 NTSTATUS
 CMiniportWaveRT::StopDMA() {
+    if (!m_pAdapterCommon) {
+        return STATUS_NO_SUCH_DEVICE;
+    }
     return m_pAdapterCommon->StopDMA(m_DeviceType);
 }
 
 NTSTATUS
 CMiniportWaveRT::CurrentPosition(UINT32* linkPos, UINT64* linearPos) {
+    if (!m_pAdapterCommon) {
+        return STATUS_NO_SUCH_DEVICE;
+    }
     return m_pAdapterCommon->CurrentPosition(m_DeviceType, linkPos, linearPos);
 }
 

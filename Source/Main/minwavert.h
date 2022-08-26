@@ -141,7 +141,9 @@ public:
     {
         PAGED_CODE();
 
-        m_pAdapterCommon = (PADAPTERCOMMON)UnknownAdapter; // weak ref.
+        m_pAdapterCommon = (PADAPTERCOMMON)UnknownAdapter;
+        if (m_pAdapterCommon)
+            m_pAdapterCommon->AddRef();
 
         if (MiniportPair->WaveDescriptor)
         {
