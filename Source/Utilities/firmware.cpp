@@ -61,7 +61,7 @@ NTSTATUS request_firmware(const struct firmware** img, PCWSTR path) {
 	}
 
 	fw->size = fileInfo.EndOfFile.QuadPart;
-	fw->data = ExAllocatePoolWithTag(NonPagedPool, fw->size, INTCSST_TAG);
+	fw->data = ExAllocatePool2(POOL_FLAG_NON_PAGED, fw->size, INTCSST_TAG);
 	if (!fw->data) {
 		status = STATUS_NO_MEMORY;
 		ZwClose(handle);
