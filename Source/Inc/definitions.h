@@ -14,6 +14,7 @@ Abstract:
 #ifndef _CSAUDIOACP3X_DEFINITIONS_H_
 #define _CSAUDIOACP3X_DEFINITIONS_H_
 
+#pragma warning(disable:4471)  // suppress enum forward declaration
 #include <portcls.h>
 #include <stdunk.h>
 #include <ksdebug.h>
@@ -21,6 +22,7 @@ Abstract:
 #include <wdf.h>
 #include <wdfminiport.h>
 #include <Ntstrsafe.h>
+#pragma warning(default:4471)
 #include "NewDelete.h"
 
 //=============================================================================
