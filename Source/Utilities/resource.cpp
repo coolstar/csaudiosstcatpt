@@ -44,7 +44,7 @@ static PRESOURCE __request_resource(PRESOURCE root, PRESOURCE newRes)
 PRESOURCE __request_region(PRESOURCE parent,
 	size_t start, size_t n, int flags)
 {
-	PRESOURCE res = (PRESOURCE)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(_RESOURCE), CSAUDIOCATPTSST_POOLTAG);
+	PRESOURCE res = (PRESOURCE)ExAllocatePoolZero(NonPagedPool, sizeof(_RESOURCE), CSAUDIOCATPTSST_POOLTAG);
 	if (!res)
 		return NULL;
 

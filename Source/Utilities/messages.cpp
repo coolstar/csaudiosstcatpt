@@ -42,7 +42,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_alloc_stream(
 	arrsz = sizeof(*mods) * num_modules;
 	size = sizeof(input) + arrsz;
 
-	payload = (UINT8 *)ExAllocatePool2(POOL_FLAG_NON_PAGED, size, CSAUDIOCATPTSST_POOLTAG);
+	payload = (UINT8 *)ExAllocatePoolZero(NonPagedPool, size, CSAUDIOCATPTSST_POOLTAG);
 	if (!payload) {
 		return STATUS_NO_MEMORY;
 	}

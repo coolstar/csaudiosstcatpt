@@ -17,7 +17,7 @@ DwDMA::DwDMA(void* regs) {
 NTSTATUS DwDMA::init() {
 	NTSTATUS status;
 
-	this->pdata = (struct dw_dma_platform_data*)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(*this->pdata), DWDMA_POOLTAG);
+	this->pdata = (struct dw_dma_platform_data*)ExAllocatePoolZero(NonPagedPool, sizeof(*this->pdata), DWDMA_POOLTAG);
 	if (!this->pdata) {
 		return STATUS_NO_MEMORY;
 	}
@@ -47,7 +47,7 @@ NTSTATUS DwDMA::init() {
 
 	//pdata done
 
-	this->chan = (struct dw_dma_chan*)ExAllocatePool2(POOL_FLAG_NON_PAGED, pdata->nr_channels * sizeof(*this->chan), DWDMA_POOLTAG);
+	this->chan = (struct dw_dma_chan*)ExAllocatePoolZero(NonPagedPool, pdata->nr_channels * sizeof(*this->chan), DWDMA_POOLTAG);
 
 	if (!this->chan) {
 		status = STATUS_NO_MEMORY;

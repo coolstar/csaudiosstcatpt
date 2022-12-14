@@ -139,7 +139,7 @@ Return Value:
     m_bCapture = Capture_;
     m_ulDmaMovementRate = pWfEx->nAvgBytesPerSec;
 
-    m_pWfExt = (PWAVEFORMATEXTENSIBLE)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(WAVEFORMATEX) + pWfEx->cbSize, MINWAVERTSTREAM_POOLTAG);
+    m_pWfExt = (PWAVEFORMATEXTENSIBLE)ExAllocatePoolZero(NonPagedPool, sizeof(WAVEFORMATEX) + pWfEx->cbSize, MINWAVERTSTREAM_POOLTAG);
     if (m_pWfExt == NULL)
     {
         return STATUS_INSUFFICIENT_RESOURCES;

@@ -5,7 +5,7 @@
 NTSTATUS request_firmware(const struct firmware** img, PCWSTR path) {
 	*img = NULL;
 
-	struct firmware* fw = (struct firmware*)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(struct firmware), INTCSST_TAG);
+	struct firmware* fw = (struct firmware*)ExAllocatePoolZero(NonPagedPool, sizeof(struct firmware), INTCSST_TAG);
 	if (!fw) {
 		return STATUS_NO_MEMORY;
 	}
@@ -61,7 +61,7 @@ NTSTATUS request_firmware(const struct firmware** img, PCWSTR path) {
 	}
 
 	fw->size = fileInfo.EndOfFile.QuadPart;
-	fw->data = ExAllocatePool2(POOL_FLAG_NON_PAGED, fw->size, INTCSST_TAG);
+	fw->data = ExAllocatePoolZero(NonPagedPool, fw->size, INTCSST_TAG);
 	if (!fw->data) {
 		status = STATUS_NO_MEMORY;
 		ZwClose(handle);

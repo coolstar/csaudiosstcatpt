@@ -27,7 +27,7 @@ Declaration of placement new and delete operators.
 PVOID operator new
 (
     size_t      iSize,
-    POOL_FLAGS  poolFlags,
+    POOL_TYPE   poolType,
     ULONG       tag
 );
 
@@ -40,7 +40,7 @@ PVOID operator new
 PVOID operator new
 (
     size_t      iSize,
-    POOL_FLAGS  poolFlags
+    POOL_TYPE   poolType
 );
 
 

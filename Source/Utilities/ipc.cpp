@@ -20,7 +20,7 @@ NTSTATUS CCsAudioCatptSSTHW::ipc_arm(struct catpt_fw_ready* config)
 	 * only used for notifications where payload size is known upfront,
 	 * thus no separate buffer is allocated for it.
 	 */
-	this->ipc_rx.data = ExAllocatePool2(POOL_FLAG_NON_PAGED, config->outbox_size, CSAUDIOCATPTSST_POOLTAG);
+	this->ipc_rx.data = ExAllocatePoolZero(NonPagedPool, config->outbox_size, CSAUDIOCATPTSST_POOLTAG);
 	if (!this->ipc_rx.data)
 		return STATUS_NO_MEMORY;
 

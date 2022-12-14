@@ -38,11 +38,11 @@ extern "C" {
 PVOID operator new
 (
     size_t      iSize,
-    POOL_FLAGS  poolFlags,
+    POOL_TYPE   poolType,
     ULONG       tag
 )
 {
-    PVOID result = ExAllocatePool2(poolFlags, iSize, tag);
+    PVOID result = ExAllocatePoolZero(poolType, iSize, tag);
 
     return result;
 }
@@ -56,10 +56,10 @@ PVOID operator new
 PVOID operator new
 (
     size_t      iSize,
-    POOL_FLAGS  poolFlags
+    POOL_TYPE   poolType
 )
 {
-    PVOID result = ExAllocatePool2(poolFlags, iSize, CSAUDIOCATPTSST_POOLTAG);
+    PVOID result = ExAllocatePoolZero(poolType, iSize, CSAUDIOCATPTSST_POOLTAG);
 
     return result;
 }
