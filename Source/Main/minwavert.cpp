@@ -29,7 +29,7 @@ Abstract:
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS
-CreateMiniportWaveRTCsAudioAcp3x
+CreateMiniportWaveRTCsAudioSstCatPt
 ( 
     _Out_           PUNKNOWN                              * Unknown,
     _In_            REFCLSID,

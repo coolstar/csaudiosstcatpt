@@ -149,7 +149,7 @@ private:
         _In_            REFGUID                                     MiniportClassId,
         _In_opt_        PFNCREATEMINIPORT                           MiniportCreate,
         _In_            ULONG                                       cPropertyCount,
-        _In_reads_opt_(cPropertyCount) const CSAUDIOACP3X_DEVPROPERTY* pProperties,
+        _In_reads_opt_(cPropertyCount) const CSAUDIOSSTCATPT_DEVPROPERTY* pProperties,
         _In_opt_        PVOID                                       DeviceContext,
         _In_            PENDPOINT_MINIPAIR                          MiniportPair,
         _In_opt_        PRESOURCELIST                               ResourceList,
@@ -255,7 +255,7 @@ private:
         _In_ PCWSTR                                                 ReferenceString,
         _In_opt_ PCWSTR                                             TemplateReferenceString,
         _In_ ULONG                                                  cPropertyCount,
-        _In_reads_opt_(cPropertyCount) const CSAUDIOACP3X_DEVPROPERTY* pProperties,
+        _In_reads_opt_(cPropertyCount) const CSAUDIOSSTCATPT_DEVPROPERTY* pProperties,
         _Out_ _At_(AudioSymbolicLinkName->Buffer, __drv_allocatesMem(Mem)) PUNICODE_STRING AudioSymbolicLinkName
     );
 
@@ -290,11 +290,11 @@ LONG  CAdapterCommon::m_AdapterInstances = 0;
 
 //=============================================================================
 #pragma code_seg("PAGE")
-NTSTATUS CsAudioAcp3xIoSetDeviceInterfacePropertyDataMultiple
+NTSTATUS CsAudioSstCatPtIoSetDeviceInterfacePropertyDataMultiple
 (
     _In_ PUNICODE_STRING                                        SymbolicLinkName,
     _In_ ULONG                                                  cPropertyCount,
-    _In_reads_opt_(cPropertyCount) const CSAUDIOACP3X_DEVPROPERTY        *pProperties
+    _In_reads_opt_(cPropertyCount) const CSAUDIOSSTCATPT_DEVPROPERTY        *pProperties
 )
 {
     NTSTATUS ntStatus;
@@ -1329,7 +1329,7 @@ CAdapterCommon::CreateAudioInterfaceWithProperties
     _In_ PCWSTR ReferenceString,
     _In_opt_ PCWSTR TemplateReferenceString,
     _In_ ULONG cPropertyCount,
-    _In_reads_opt_(cPropertyCount) const CSAUDIOACP3X_DEVPROPERTY *pProperties,
+    _In_reads_opt_(cPropertyCount) const CSAUDIOSSTCATPT_DEVPROPERTY *pProperties,
     _Out_ _At_(AudioSymbolicLinkName->Buffer, __drv_allocatesMem(Mem)) PUNICODE_STRING AudioSymbolicLinkName
 )
 /*++
@@ -1384,11 +1384,11 @@ Create the audio interface (in disabled mode).
     //
     // Set properties on the interface
     //
-    ntStatus = CsAudioAcp3xIoSetDeviceInterfacePropertyDataMultiple(AudioSymbolicLinkName, cPropertyCount, pProperties);
+    ntStatus = CsAudioSstCatPtIoSetDeviceInterfacePropertyDataMultiple(AudioSymbolicLinkName, cPropertyCount, pProperties);
 
     IF_FAILED_ACTION_JUMP(
         ntStatus,
-        DPF(D_ERROR, ("CreateAudioInterfaceWithProperties: CsAudioAcp3xIoSetDeviceInterfacePropertyDataMultiple(...): failed, 0x%x", ntStatus)),
+        DPF(D_ERROR, ("CreateAudioInterfaceWithProperties: CsAudioSstCatPtIoSetDeviceInterfacePropertyDataMultiple(...): failed, 0x%x", ntStatus)),
         Done);
 
     //
@@ -1417,7 +1417,7 @@ CAdapterCommon::InstallSubdevice
     _In_            REFGUID                                 MiniportClassId,
     _In_opt_        PFNCREATEMINIPORT                       MiniportCreate,
     _In_            ULONG                                   cPropertyCount,
-    _In_reads_opt_(cPropertyCount) const CSAUDIOACP3X_DEVPROPERTY * pProperties,
+    _In_reads_opt_(cPropertyCount) const CSAUDIOSSTCATPT_DEVPROPERTY * pProperties,
     _In_opt_        PVOID                                   DeviceContext,
     _In_            PENDPOINT_MINIPAIR                      MiniportPair,
     _In_opt_        PRESOURCELIST                           ResourceList,
@@ -2072,7 +2072,7 @@ CAdapterCommon::InstallEndpointFilters
         // Install Simple Audio Sample topology miniport for the render endpoint.
         //
         ntStatus = InstallSubdevice(Irp,
-                                    MiniportPair->TopoName, // make sure this name matches with CSAUDIOACP3X.<TopoName>.szPname in the inf's [Strings] section
+                                    MiniportPair->TopoName, // make sure this name matches with CSAUDIOSSTCATPT.<TopoName>.szPname in the inf's [Strings] section
                                     MiniportPair->TemplateTopoName,
                                     CLSID_PortTopology,
                                     CLSID_PortTopology, 
@@ -2101,7 +2101,7 @@ CAdapterCommon::InstallEndpointFilters
         // Install Simple Audio Sample wave miniport for the render endpoint.
         //
         ntStatus = InstallSubdevice(Irp,
-                                    MiniportPair->WaveName, // make sure this name matches with CSAUDIOACP3X.<WaveName>.szPname in the inf's [Strings] section
+                                    MiniportPair->WaveName, // make sure this name matches with CSAUDIOSSTCATPT.<WaveName>.szPname in the inf's [Strings] section
                                     MiniportPair->TemplateWaveName,
                                     CLSID_PortWaveRT,
                                     CLSID_PortWaveRT,   

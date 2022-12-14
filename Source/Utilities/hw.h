@@ -13,8 +13,8 @@ Abstract:
     for the topology.
 --*/
 
-#ifndef _CSAUDIOACP3X_HW_H_
-#define _CSAUDIOACP3X_HW_H_
+#ifndef _CSAUDIOSSTCATPT_HW_H_
+#define _CSAUDIOSSTCATPT_HW_H_
 #define USESSTHW 1
 
 //
@@ -150,7 +150,7 @@ struct catpt_stream {
 // Classes
 //=============================================================================
 ///////////////////////////////////////////////////////////////////////////////
-// CCsAudioAcp3xHW
+// CCsAudioSstCatPtHW
 // This class represents virtual Simple Audio Sample HW. An array representing volume
 // registers and mute registers.
 
@@ -320,4 +320,4 @@ private:
 };
 typedef CCsAudioCatptSSTHW *PCCsAudioCatptSSTHW;
 
-#endif  // _CSAUDIOACP3X_HW_H_
+#endif  // _CSAUDIOSSTCATPT_HW_H_

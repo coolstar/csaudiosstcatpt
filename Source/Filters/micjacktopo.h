@@ -12,8 +12,8 @@ Abstract:
 
 --*/
 
-#ifndef _CSAUDIOACP3X_MICJACKTOPO_H_
-#define _CSAUDIOACP3X_MICJACKTOPO_H_
+#ifndef _CSAUDIOSSTCATPT_MICJACKTOPO_H_
+#define _CSAUDIOSSTCATPT_MICJACKTOPO_H_
 
 // Function declarations.
 NTSTATUS
@@ -21,4 +21,4 @@ PropertyHandler_MicJackTopoFilter(_In_ PPCPROPERTY_REQUEST      PropertyRequest)
 
 NTSTATUS PropertyHandler_MicJackTopology(_In_ PPCPROPERTY_REQUEST PropertyRequest);
 
-#endif // _CSAUDIOACP3X_MICJACKTOPO_H_
+#endif // _CSAUDIOSSTCATPT_MICJACKTOPO_H_

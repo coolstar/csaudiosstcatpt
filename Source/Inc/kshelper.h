@@ -10,8 +10,8 @@ Abstract:
 
     Helper functions for simple audio sample
 --*/
-#ifndef _CSAUDIOACP3X_KSHELPER_H_
-#define _CSAUDIOACP3X_KSHELPER_H_
+#ifndef _CSAUDIOSSTCATPT_KSHELPER_H_
+#define _CSAUDIOSSTCATPT_KSHELPER_H_
 
 #include <portcls.h>
 #include <ksdebug.h>
@@ -64,14 +64,14 @@ PropertyHandler_PeakMeter2
 //=============================================================================
 
 NTSTATUS
-CsAudioAcp3xPropertyDispatch
+CsAudioSstCatPtPropertyDispatch
 (
     _In_ PPCPROPERTY_REQUEST PropertyRequest
 );
 
 // Use this structure to define property items with extra data allowing easier
 // definition of separate get, set, and support handlers dispatched through
-// CsAudioAcp3xPropertyDispatch.
+// CsAudioSstCatPtPropertyDispatch.
 typedef struct
 {
     PCPROPERTY_ITEM         PropertyItem;       // Standard PCPROPERTY_ITEM
@@ -82,7 +82,7 @@ typedef struct
     PCPFNPROPERTY_HANDLER   SupportHandler;     // Property support handler (NULL for common handler)
     VOID                    *ContextData;        // Optional context information for the handler, NULL for unused
     ULONG                   ContextDataSize;     // Size of the data held at ContextData, 0 for unused
-} CSAUDIOACP3X_PROPERTY_ITEM;
+} CSAUDIOSSTCATPT_PROPERTY_ITEM;
 
 // The following macros facilitate adding property handlers to a class, allowing
 // easier declaration and definition of a "thunk" routine that directly handles
@@ -126,4 +126,4 @@ NTSTATUS theClass::theMethod                                                    
 
 
 
-#endif  // _CSAUDIOACP3X_KSHELPER_H_
+#endif  // _CSAUDIOSSTCATPT_KSHELPER_H_

@@ -55,7 +55,7 @@ CCsAudioCatptSSTHW::CCsAudioCatptSSTHW(_In_  PRESOURCELIST           ResourceLis
 
 Routine Description:
 
-    Constructor for CsAudioAcp3xHW. 
+    Constructor for CsAudioSstCatPtHW. 
 
 Arguments:
 

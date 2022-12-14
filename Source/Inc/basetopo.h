@@ -12,18 +12,18 @@ Abstract:
     Declaration of topology miniport.
 --*/
 
-#ifndef _CSAUDIOACP3X_BASETOPO_H_
-#define _CSAUDIOACP3X_BASETOPO_H_
+#ifndef _CSAUDIOSSTCATPT_BASETOPO_H_
+#define _CSAUDIOSSTCATPT_BASETOPO_H_
 
 //=============================================================================
 // Classes
 //=============================================================================
 
 ///////////////////////////////////////////////////////////////////////////////
-// CMiniportTopologyCsAudioAcp3x
+// CMiniportTopologyCsAudioSstCatPt
 //
 
-class CMiniportTopologyCsAudioAcp3x
+class CMiniportTopologyCsAudioSstCatPt
 {
   protected:
     PADAPTERCOMMON              m_AdapterCommon;        // Adapter common object.
@@ -32,12 +32,12 @@ class CMiniportTopologyCsAudioAcp3x
     USHORT                      m_DeviceMaxChannels;    // Max device channels.
 
   public:
-    CMiniportTopologyCsAudioAcp3x(
+    CMiniportTopologyCsAudioSstCatPt(
         _In_        PCFILTER_DESCRIPTOR    *FilterDesc,
         _In_        USHORT                  DeviceMaxChannels
         );
     
-    ~CMiniportTopologyCsAudioAcp3x();
+    ~CMiniportTopologyCsAudioSstCatPt();
 
     NTSTATUS                    GetDescription
     (   

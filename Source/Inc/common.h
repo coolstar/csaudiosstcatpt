@@ -11,8 +11,8 @@ Abstract:
     CAdapterCommon class declaration.
 --*/
 
-#ifndef _CSAUDIOACP3X_COMMON_H_
-#define _CSAUDIOACP3X_COMMON_H_
+#ifndef _CSAUDIOSSTCATPT_COMMON_H_
+#define _CSAUDIOSSTCATPT_COMMON_H_
 
 #define HNSTIME_PER_MILLISECOND 10000
 
@@ -185,12 +185,12 @@ typedef HRESULT (*PFNCREATEMINIPORT)(
 //=============================================================================
 //
 //=============================================================================
-typedef struct _CSAUDIOACP3X_DEVPROPERTY {
+typedef struct _CSAUDIOSSTCATPT_DEVPROPERTY {
     const DEVPROPKEY   *PropertyKey;
     DEVPROPTYPE Type;
     ULONG BufferSize;
     __field_bcount_opt(BufferSize) PVOID Buffer;
-} CSAUDIOACP3X_DEVPROPERTY, PCSAUDIOACP3X_DEVPROPERTY;
+} CSAUDIOSSTCATPT_DEVPROPERTY, PCSAUDIOSSTCATPT_DEVPROPERTY;
 
 #define ENDPOINT_NO_FLAGS                       0x00000000
 #define ENDPOINT_CELLULAR_PROVIDER1             0x00000008
@@ -204,20 +204,20 @@ typedef struct _ENDPOINT_MINIPAIR
     eDeviceType                     DeviceType;
 
     // Topology miniport.
-    PWSTR                           TopoName;               // make sure this or the template name matches with CSAUDIOACP3X.<TopoName>.szPname in the inf's [Strings] section
+    PWSTR                           TopoName;               // make sure this or the template name matches with CSAUDIOSSTCATPT.<TopoName>.szPname in the inf's [Strings] section
     PWSTR                           TemplateTopoName;       // optional template name
     PFNCREATEMINIPORT               TopoCreateCallback;
     PCFILTER_DESCRIPTOR*            TopoDescriptor;
     ULONG                           TopoInterfacePropertyCount;
-    const CSAUDIOACP3X_DEVPROPERTY*       TopoInterfaceProperties;
+    const CSAUDIOSSTCATPT_DEVPROPERTY*       TopoInterfaceProperties;
 
     // Wave RT miniport.
-    PWSTR                           WaveName;               // make sure this or the template name matches with CSAUDIOACP3X.<WaveName>.szPname in the inf's [Strings] section
+    PWSTR                           WaveName;               // make sure this or the template name matches with CSAUDIOSSTCATPT.<WaveName>.szPname in the inf's [Strings] section
     PWSTR                           TemplateWaveName;       // optional template name
     PFNCREATEMINIPORT               WaveCreateCallback;
     PCFILTER_DESCRIPTOR*            WaveDescriptor;
     ULONG                           WaveInterfacePropertyCount;
-    const CSAUDIOACP3X_DEVPROPERTY*       WaveInterfaceProperties;
+    const CSAUDIOSSTCATPT_DEVPROPERTY*       WaveInterfaceProperties;
 
     USHORT                          DeviceMaxChannels;
     PIN_DEVICE_FORMATS_AND_MODES*   PinDeviceFormatsAndModes;
@@ -383,7 +383,7 @@ DECLARE_INTERFACE_(IAdapterCommon, IUnknown)
         _In_            REFGUID                                     MiniportClassId,
         _In_opt_        PFNCREATEMINIPORT                           MiniportCreate,
         _In_            ULONG                                       cPropertyCount,
-        _In_reads_opt_(cPropertyCount) const CSAUDIOACP3X_DEVPROPERTY   * pProperties,
+        _In_reads_opt_(cPropertyCount) const CSAUDIOSSTCATPT_DEVPROPERTY   * pProperties,
         _In_opt_        PVOID                                       DeviceContext,
         _In_            PENDPOINT_MINIPAIR                          MiniportPair,
         _In_opt_        PRESOURCELIST                               ResourceList,
@@ -472,4 +472,4 @@ NewAdapterCommon
     _In_        POOL_TYPE               PoolType
 );
 
-#endif  //_CSAUDIOACP3X_COMMON_H_
+#endif  //_CSAUDIOSSTCATPT_COMMON_H_

@@ -12,8 +12,8 @@ Abstract:
 
 --*/
 
-#ifndef _CSAUDIOACP3X_MICJACKTOPTABLE_H_
-#define _CSAUDIOACP3X_MICJACKTOPTABLE_H_
+#ifndef _CSAUDIOSSTCATPT_MICJACKTOPTABLE_H_
+#define _CSAUDIOSSTCATPT_MICJACKTOPTABLE_H_
 
 //=============================================================================
 static
@@ -156,4 +156,4 @@ PCFILTER_DESCRIPTOR MicJackTopoMiniportFilterDescriptor =
   NULL                                      // Categories
 };
 
-#endif // _CSAUDIOACP3X_MICJACKTOPTABLE_H_
+#endif // _CSAUDIOSSTCATPT_MICJACKTOPTABLE_H_

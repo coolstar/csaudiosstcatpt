@@ -11,8 +11,8 @@ Abstract:
     Header file for common stuff.
 --*/
 
-#ifndef _CSAUDIOACP3X_DEFINITIONS_H_
-#define _CSAUDIOACP3X_DEFINITIONS_H_
+#ifndef _CSAUDIOSSTCATPT_DEFINITIONS_H_
+#define _CSAUDIOSSTCATPT_DEFINITIONS_H_
 
 #pragma warning(disable:4471)  // suppress enum forward declaration
 #include <portcls.h>
@@ -31,16 +31,16 @@ Abstract:
 
 // Product Id
 // {836BA6D1-3FF7-4411-8BCD-469553452DCE}
-#define STATIC_PID_CSAUDIOACP3X\
+#define STATIC_PID_CSAUDIOSSTCATPT\
     0x836ba6d1, 0x3ff7, 0x4411, 0x8b, 0xcd, 0x46, 0x95, 0x53, 0x45, 0x2d, 0xce
-DEFINE_GUIDSTRUCT("836BA6D1-3FF7-4411-8BCD-469553452DCE", PID_CSAUDIOACP3X);
-#define PID_CSAUDIOACP3X DEFINE_GUIDNAMED(PID_CSAUDIOACP3X)
+DEFINE_GUIDSTRUCT("836BA6D1-3FF7-4411-8BCD-469553452DCE", PID_CSAUDIOSSTCATPT);
+#define PID_CSAUDIOSSTCATPT DEFINE_GUIDNAMED(PID_CSAUDIOSSTCATPT)
 
-// Pool tag used for CSAUDIOACP3X allocations
+// Pool tag used for CSAUDIOSSTCATPT allocations
 #define CSAUDIOCATPTSST_POOLTAG               'UASC'  
 
 // Debug module name
-#define STR_MODULENAME              "CSAUDIOACP3X: "
+#define STR_MODULENAME              "CSAUDIOSSTCATPT: "
 
 // Debug utility macros
 #define D_FUNC                      4
@@ -197,4 +197,4 @@ NTSTATUS PropertyHandler_GenericPin
 #include "common.h"
 #include "kshelper.h"
 
-#endif // _CSAUDIOACP3X_DEFINITIONS_H_
+#endif // _CSAUDIOSSTCATPT_DEFINITIONS_H_

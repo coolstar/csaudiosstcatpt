@@ -12,8 +12,8 @@ Abstract:
     Declaration of topology miniport.
 --*/
 
-#ifndef _CSAUDIOACP3X_MINTOPO_H_
-#define _CSAUDIOACP3X_MINTOPO_H_
+#ifndef _CSAUDIOSSTCATPT_MINTOPO_H_
+#define _CSAUDIOSSTCATPT_MINTOPO_H_
 
 #include "basetopo.h"
 
@@ -26,7 +26,7 @@ Abstract:
 //   
 
 class CMiniportTopology : 
-    public CMiniportTopologyCsAudioAcp3x,
+    public CMiniportTopologyCsAudioSstCatPt,
     public IMiniportTopology,
     public CUnknown
 {
@@ -48,7 +48,7 @@ public:
         _In_opt_    PVOID                   DeviceContext
     )
     : CUnknown(UnknownOuter),
-      CMiniportTopologyCsAudioAcp3x(FilterDesc, DeviceMaxChannels),
+      CMiniportTopologyCsAudioSstCatPt(FilterDesc, DeviceMaxChannels),
       m_DeviceType(DeviceType),
       m_DeviceContext(DeviceContext)
     {
@@ -78,4 +78,4 @@ public:
 
 typedef CMiniportTopology *PCMiniportTopology;
 
-#endif // _CSAUDIOACP3X_MINTOPO_H_
+#endif // _CSAUDIOSSTCATPT_MINTOPO_H_

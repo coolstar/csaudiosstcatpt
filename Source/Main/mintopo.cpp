@@ -21,7 +21,7 @@ Abstract:
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS
-CreateMiniportTopologyCsAudioAcp3x
+CreateMiniportTopologyCsAudioSstCatPt
 ( 
     _Out_           PUNKNOWN *                              Unknown,
     _In_            REFCLSID,
@@ -80,7 +80,7 @@ Return Value:
     *Unknown = reinterpret_cast<IUnknown*>(obj);
 
     return STATUS_SUCCESS;
-} // CreateMiniportTopologyCsAudioAcp3x
+} // CreateMiniportTopologyCsAudioSstCatPt
 
 //=============================================================================
 #pragma code_seg("PAGE")
@@ -156,7 +156,7 @@ Return Value:
     PAGED_CODE();
 
     return 
-        CMiniportTopologyCsAudioAcp3x::DataRangeIntersection
+        CMiniportTopologyCsAudioSstCatPt::DataRangeIntersection
         (
             PinId,
             ClientDataRange,
@@ -197,7 +197,7 @@ Return Value:
 
     ASSERT(OutFilterDescriptor);
 
-    return CMiniportTopologyCsAudioAcp3x::GetDescription(OutFilterDescriptor);        
+    return CMiniportTopologyCsAudioSstCatPt::GetDescription(OutFilterDescriptor);        
 } // GetDescription
 
 //=============================================================================
@@ -245,7 +245,7 @@ Return Value:
     NTSTATUS                    ntStatus;
 
     ntStatus = 
-        CMiniportTopologyCsAudioAcp3x::Init
+        CMiniportTopologyCsAudioSstCatPt::Init
         (
             UnknownAdapter,
             Port_
@@ -253,7 +253,7 @@ Return Value:
 
     IF_FAILED_ACTION_JUMP(
         ntStatus,
-        DPF(D_ERROR, ("Init: CMiniportTopologyCsAudioAcp3x::Init failed, 0x%x", ntStatus)),
+        DPF(D_ERROR, ("Init: CMiniportTopologyCsAudioSstCatPt::Init failed, 0x%x", ntStatus)),
         Done);
 
 Done:

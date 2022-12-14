@@ -11,8 +11,8 @@ Abstract:
     Declaration of topology tables.
 --*/
 
-#ifndef _CSAUDIOACP3X_SPEAKERTOPTABLE_H_
-#define _CSAUDIOACP3X_SPEAKERTOPTABLE_H_
+#ifndef _CSAUDIOSSTCATPT_SPEAKERTOPTABLE_H_
+#define _CSAUDIOSSTCATPT_SPEAKERTOPTABLE_H_
 
 //=============================================================================
 static
@@ -149,4 +149,4 @@ PCFILTER_DESCRIPTOR SpeakerTopoMiniportFilterDescriptor =
   NULL                                          // Categories
 };
 
-#endif // _CSAUDIOACP3X_SPEAKERTOPTABLE_H_
+#endif // _CSAUDIOSSTCATPT_SPEAKERTOPTABLE_H_

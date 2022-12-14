@@ -20,7 +20,7 @@ Abstract:
 
 //=============================================================================
 #pragma code_seg("PAGE")
-CMiniportTopologyCsAudioAcp3x::CMiniportTopologyCsAudioAcp3x
+CMiniportTopologyCsAudioSstCatPt::CMiniportTopologyCsAudioSstCatPt
 (
     _In_        PCFILTER_DESCRIPTOR    *FilterDesc,
     _In_        USHORT                  DeviceMaxChannels
@@ -55,9 +55,9 @@ Return Value:
     
     ASSERT(DeviceMaxChannels > 0);
     m_DeviceMaxChannels = DeviceMaxChannels;
-} // CMiniportTopologyCsAudioAcp3x
+} // CMiniportTopologyCsAudioSstCatPt
 
-CMiniportTopologyCsAudioAcp3x::~CMiniportTopologyCsAudioAcp3x
+CMiniportTopologyCsAudioSstCatPt::~CMiniportTopologyCsAudioSstCatPt
 (
     void
 )
@@ -81,12 +81,12 @@ Return Value:
 
     SAFE_RELEASE(m_AdapterCommon);
     SAFE_RELEASE(m_PortEvents);
-} // ~CMiniportTopologyCsAudioAcp3x
+} // ~CMiniportTopologyCsAudioSstCatPt
 
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS
-CMiniportTopologyCsAudioAcp3x::DataRangeIntersection
+CMiniportTopologyCsAudioSstCatPt::DataRangeIntersection
 ( 
     _In_  ULONG                 PinId,
     _In_  PKSDATARANGE          ClientDataRange,
@@ -146,7 +146,7 @@ Return Value:
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS
-CMiniportTopologyCsAudioAcp3x::GetDescription
+CMiniportTopologyCsAudioSstCatPt::GetDescription
 ( 
     _Out_ PPCFILTER_DESCRIPTOR *  OutFilterDescriptor 
 )
@@ -183,7 +183,7 @@ Return Value:
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS
-CMiniportTopologyCsAudioAcp3x::Init
+CMiniportTopologyCsAudioSstCatPt::Init
 ( 
     _In_  PUNKNOWN          UnknownAdapter_,
     _In_  PPORTTOPOLOGY     Port_ 
@@ -211,7 +211,7 @@ Return Value:
     ASSERT(UnknownAdapter_);
     ASSERT(Port_);
 
-    DPF_ENTER(("[CMiniportTopologyCsAudioAcp3x::Init]"));
+    DPF_ENTER(("[CMiniportTopologyCsAudioSstCatPt::Init]"));
 
     NTSTATUS    ntStatus;
 
@@ -248,7 +248,7 @@ Return Value:
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS                            
-CMiniportTopologyCsAudioAcp3x::PropertyHandlerGeneric
+CMiniportTopologyCsAudioSstCatPt::PropertyHandlerGeneric
 (
     _In_  PPCPROPERTY_REQUEST     PropertyRequest
 )
@@ -303,7 +303,7 @@ Return Value:
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS                            
-CMiniportTopologyCsAudioAcp3x::PropertyHandlerMuxSource
+CMiniportTopologyCsAudioSstCatPt::PropertyHandlerMuxSource
 (
     _In_  PPCPROPERTY_REQUEST     PropertyRequest
 )
@@ -374,7 +374,7 @@ Return Value:
 //=============================================================================
 #pragma code_seg("PAGE")
 NTSTATUS                            
-CMiniportTopologyCsAudioAcp3x::PropertyHandlerDevSpecific(
+CMiniportTopologyCsAudioSstCatPt::PropertyHandlerDevSpecific(
     _In_  PPCPROPERTY_REQUEST     PropertyRequest
 )
 /*++
@@ -599,7 +599,7 @@ Return Value:
 //=============================================================================
 #pragma code_seg("PAGE")
 VOID
-CMiniportTopologyCsAudioAcp3x::AddEventToEventList
+CMiniportTopologyCsAudioSstCatPt::AddEventToEventList
 (
     _In_  PKSEVENT_ENTRY    EventEntry 
 )
@@ -626,7 +626,7 @@ Arguments:
 //=============================================================================
 #pragma code_seg()
 VOID
-CMiniportTopologyCsAudioAcp3x::GenerateEventList
+CMiniportTopologyCsAudioSstCatPt::GenerateEventList
 (
     _In_opt_    GUID   *Set,
     _In_        ULONG   EventId,
@@ -658,7 +658,7 @@ Arguments:
 
 --*/
 {
-    DPF_ENTER(("[CMiniportTopologyCsAudioAcp3x::GenerateEventList]"));
+    DPF_ENTER(("[CMiniportTopologyCsAudioSstCatPt::GenerateEventList]"));
 
     ASSERT(m_PortEvents != NULL);
 

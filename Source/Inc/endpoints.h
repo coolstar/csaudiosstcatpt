@@ -11,8 +11,8 @@ Abstract:
     Node and Pin numbers and other common definitions for simple audio sample.
 --*/
 
-#ifndef _CSAUDIOACP3X_ENDPOINTS_H_
-#define _CSAUDIOACP3X_ENDPOINTS_H_
+#ifndef _CSAUDIOSSTCATPT_ENDPOINTS_H_
+#define _CSAUDIOSSTCATPT_ENDPOINTS_H_
 
 // Name Guid
 // {0104947F-82AE-4291-A6F3-5E2DE1AD7DC2}
@@ -130,4 +130,4 @@ KSATTRIBUTE_LIST PinDataRangeAttributeList =
     PinDataRangeAttributes,
 };
 
-#endif // _CSAUDIOACP3X_ENDPOINTS_H_
+#endif // _CSAUDIOSSTCATPT_ENDPOINTS_H_

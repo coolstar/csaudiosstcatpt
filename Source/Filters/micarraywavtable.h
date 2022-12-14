@@ -12,8 +12,8 @@ Abstract:-
 
 --*/
 
-#ifndef _CSAUDIOACP3X_MICARRAYWAVTABLE_H_
-#define _CSAUDIOACP3X_MICARRAYWAVTABLE_H_
+#ifndef _CSAUDIOSSTCATPT_MICARRAYWAVTABLE_H_
+#define _CSAUDIOSSTCATPT_MICARRAYWAVTABLE_H_
 
 //
 // Mic array range.
@@ -220,7 +220,7 @@ PCCONNECTION_DESCRIPTOR MicArrayWaveMiniportConnections[] =
 //=============================================================================
 
 static
-CSAUDIOACP3X_PROPERTY_ITEM PropertiesMicArrayWaveFilter[] =
+CSAUDIOSSTCATPT_PROPERTY_ITEM PropertiesMicArrayWaveFilter[] =
 {
     {
         {
@@ -289,4 +289,4 @@ PCFILTER_DESCRIPTOR MicArrayWaveMiniportFilterDescriptor =
     NULL                                            // Categories  - use defaults (audio, render, capture)
 };
 
-#endif // _CSAUDIOACP3X_MICARRAYWAVTABLE_H_
+#endif // _CSAUDIOSSTCATPT_MICARRAYWAVTABLE_H_
