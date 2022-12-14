@@ -208,7 +208,7 @@ NTSTATUS CCsAudioCatptSSTHW::sst_init() {
         return status;
     }
 
-    this->dmac = new (POOL_FLAG_NON_PAGED, CSAUDIOCATPTSST_POOLTAG)DwDMA(this->lpe_ba + this->spec->host_dma_offset[CATPT_DMA_DEVID]);
+    this->dmac = new (NonPagedPool, CSAUDIOCATPTSST_POOLTAG)DwDMA(this->lpe_ba + this->spec->host_dma_offset[CATPT_DMA_DEVID]);
     status = this->dmac->init();
     if (!NT_SUCCESS(status)) {
         return status;

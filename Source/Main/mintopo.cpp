@@ -65,7 +65,7 @@ Return Value:
     ASSERT(MiniportPair);
 
     CMiniportTopology *obj = 
-        new (PoolFlags, MINWAVERT_POOLTAG) 
+        new (PoolType, MINWAVERT_POOLTAG) 
             CMiniportTopology( UnknownOuter,
                                MiniportPair->TopoDescriptor,
                                MiniportPair->DeviceMaxChannels,

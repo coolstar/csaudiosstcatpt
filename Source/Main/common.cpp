@@ -374,7 +374,7 @@ Return Value:
     //
     // Allocate an adapter object.
     //
-    CAdapterCommon *p = new(PoolFlags, MINADAPTER_POOLTAG) CAdapterCommon(UnknownOuter);
+    CAdapterCommon *p = new(PoolType, MINADAPTER_POOLTAG) CAdapterCommon(UnknownOuter);
     if (p == NULL)
     {
         ntStatus = STATUS_INSUFFICIENT_RESOURCES;
@@ -585,7 +585,7 @@ Return Value:
 
     // Initialize HW.
     // 
-    m_pHW = new (POOL_FLAG_NON_PAGED, CSAUDIOCATPTSST_POOLTAG)  CCsAudioCatptSSTHW(ResourceList);
+    m_pHW = new (NonPagedPool, CSAUDIOCATPTSST_POOLTAG)  CCsAudioCatptSSTHW(ResourceList);
     if (!m_pHW)
     {
         DPF(D_TERSE, ("Insufficient memory for Smart Sound HW"));
@@ -1507,7 +1507,7 @@ Return Value:
                     &miniport,
                     MiniportClassId,
                     NULL,
-                    POOL_FLAG_NON_PAGED,
+                    NonPagedPool,
                     adapterCommon,
                     DeviceContext,
                     MiniportPair
@@ -1910,7 +1910,7 @@ CAdapterCommon::CacheSubdevice
     NTSTATUS         ntStatus       = STATUS_SUCCESS;
     MINIPAIR_UNKNOWN *pNewSubdevice = NULL;
 
-    pNewSubdevice = new(POOL_FLAG_NON_PAGED, MINADAPTER_POOLTAG) MINIPAIR_UNKNOWN;
+    pNewSubdevice = new(NonPagedPool, MINADAPTER_POOLTAG) MINIPAIR_UNKNOWN;
 
     if (!pNewSubdevice)
     {

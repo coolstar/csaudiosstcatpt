@@ -74,7 +74,7 @@ Return Value:
     ASSERT(Unknown);
     ASSERT(MiniportPair);
 
-    CMiniportWaveRT *obj = new (PoolFlags, MINWAVERT_POOLTAG) CMiniportWaveRT
+    CMiniportWaveRT *obj = new (PoolType, MINWAVERT_POOLTAG) CMiniportWaveRT
                                                              (
                                                                 UnknownAdapter,
                                                                 MiniportPair,
@@ -483,7 +483,7 @@ Return Value:
     //
     if (NT_SUCCESS(ntStatus))
     {
-        stream = new (POOL_FLAG_NON_PAGED, MINWAVERT_POOLTAG) 
+        stream = new (NonPagedPool, MINWAVERT_POOLTAG) 
             CMiniportWaveRTStream(NULL);
 
         if (stream)
@@ -1492,7 +1492,7 @@ Return Value:
         return STATUS_UNSUCCESSFUL;
     }
 
-    ulContentIds = new (POOL_FLAG_NON_PAGED, MINWAVERT_POOLTAG) ULONG[m_ulMaxSystemStreams + m_ulMaxOffloadStreams];
+    ulContentIds = new (NonPagedPool, MINWAVERT_POOLTAG) ULONG[m_ulMaxSystemStreams + m_ulMaxOffloadStreams];
     if (!ulContentIds)
     {
         return STATUS_INSUFFICIENT_RESOURCES;

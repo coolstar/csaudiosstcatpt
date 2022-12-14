@@ -577,7 +577,7 @@ Return Value:
                                 &pUnknownCommon,
                                 IID_IAdapterCommon,
                                 NULL,
-                                POOL_FLAG_NON_PAGED 
+                                NonPagedPool 
                                 );
     IF_FAILED_JUMP(ntStatus, Exit);
 
