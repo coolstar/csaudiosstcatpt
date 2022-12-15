@@ -1667,7 +1667,7 @@ exit:
     return ntStatus;
 }
 
-#pragma code_seg("PAGE")
+#pragma code_seg()
 NTSTATUS
 CMiniportWaveRT::AcquireDMA(_In_ PCMiniportWaveRTStream _Stream, UINT32 byteCount) {
     if (!m_pAdapterCommon) {
