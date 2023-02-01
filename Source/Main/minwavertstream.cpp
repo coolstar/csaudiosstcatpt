@@ -108,7 +108,6 @@ Return Value:
     m_bUnregisterStream = FALSE;
     m_bCapture = FALSE;
     m_ulDmaBufferSize = 0;
-    m_pDmaBuffer = NULL;
     m_KsState = KSSTATE_STOP;
     m_ulDmaMovementRate = 0;
     m_pWfExt = NULL;
@@ -283,12 +282,6 @@ _In_        ULONG       Size_
 
     if (Mdl_ != NULL)
     {
-        if (m_pDmaBuffer != NULL)
-        {
-            m_pPortStream->UnmapAllocatedPages(m_pDmaBuffer, Mdl_);
-            m_pDmaBuffer = NULL;
-        }
-
         m_pPortStream->FreePagesFromMdl(Mdl_);
     }
 
@@ -326,22 +319,6 @@ _Out_   MEMORY_CACHING_TYPE    *CacheType_
         return STATUS_UNSUCCESSFUL;
     }
 
-    // From MSDN: 
-    // "Since the Windows audio stack does not support a mechanism to express memory access 
-    //  alignment requirements for buffers, audio drivers must select a caching type for mapped
-    //  memory buffers that does not impose platform-specific alignment requirements. In other 
-    //  words, the caching type used by the audio driver for mapped memory buffers, must not make 
-    //  assumptions about the memory alignment requirements for any specific platform.
-    //
-    //  This method maps the physical memory pages in the MDL into kernel-mode virtual memory. 
-    //  Typically, the miniport driver calls this method if it requires software access to the 
-    //  scatter-gather list for an audio buffer. In this case, the storage for the scatter-gather 
-    //  list must have been allocated by the IPortWaveRTStream::AllocatePagesForMdl or 
-    //  IPortWaveRTStream::AllocateContiguousPagesForMdl method. 
-    //
-    //  A WaveRT miniport driver should not require software access to the audio buffer itself."
-    //   
-    m_pDmaBuffer = (BYTE*)m_pPortStream->MapAllocatedPages(pBufferMdl, MmNonCached);
     m_pMDL = pBufferMdl;
 
     m_ulDmaBufferSize = RequestedSize_;

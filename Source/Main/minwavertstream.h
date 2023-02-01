@@ -72,7 +72,6 @@ protected:
     BOOLEAN                     m_bCapture;
     BOOLEAN                     m_bUnregisterStream;
     ULONG                       m_ulDmaBufferSize;
-    BYTE*                       m_pDmaBuffer;
     KSSTATE                     m_KsState;
     ULONG                       m_ulDmaMovementRate;
     PWAVEFORMATEXTENSIBLE       m_pWfExt;
